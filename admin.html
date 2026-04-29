@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whistlestop Coffee Hut - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="admin.css">
+
+</head>
+<body>
+    <div class="admin-layout">
+        <div class="sidebar">
+            <div class="sidebar-logo">WHISTLESTOP</div>
+            <div class="nav-item active" onclick="nav('orders', this)"><i class="fa-solid fa-table-columns"></i> Workspace</div>
+            <div class="nav-item" onclick="nav('products', this)"><i class="fa-solid fa-list"></i> Menu Manager</div>
+            <div class="nav-item" onclick="nav('archive', this)"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+        </div>
+
+        <div class="main-wrapper">
+            <header class="top-nav">
+                <div>
+                    <span style="color: #999; margin-right: 10px;">Station:</span>
+                    <select class="station-pick" id="stationFilter" onchange="renderAll()">
+                        <option>Cramlington Station</option>
+                        <option>Newcastle Station</option>
+                        <option>Morpeth Station</option>
+                    </select>
+                </div>
+                <div id="clock" style="font-weight: 700;">00:00:00</div>
+            </header>
+
+            <main class="content-scroll">
+                <div id="view-orders">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div style="font-size: 12px; color: #888;">Pending Orders</div>
+                            <div class="stat-val" id="count-new">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 12px; color: #888;">In Progress</div>
+                            <div class="stat-val" id="count-prep" style="color: var(--accent-blue);">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 12px; color: #888;">Completed Today</div>
+                            <div class="stat-val" id="count-done" style="color: #34c759;">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 12px; color: #888;">Estimated Revenue</div>
+                            <div class="stat-val">£<span id="total-rev">0.00</span></div>
+                        </div>
+                    </div>
+
+                    <div class="kanban-container">
+                        <div class="kb-column">
+                            <div class="kb-header"><span>New Orders</span><span id="num1">0</span></div>
+                            <div class="kb-list" id="list-new"></div>
+                        </div>
+                        <div class="kb-column">
+                            <div class="kb-header"><span>Preparing</span><span id="num2">0</span></div>
+                            <div class="kb-list" id="list-prep"></div>
+                        </div>
+                        <div class="kb-column">
+                            <div class="kb-header"><span>Ready for Pickup</span><span id="num3">0</span></div>
+                            <div class="kb-list" id="list-ready"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-products" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom:20px;">
+                        <h2>Menu Configuration (Synced with Customer App)</h2>
+                        <button style="padding:10px 20px; border-radius:8px; cursor:pointer; background: #000; color: #fff; border:none;" onclick="openPModal()">+ Add Product</button>
+                    </div>
+                    <table class="product-table">
+                        <thead>
+                            <tr><th>Product</th><th>Price (Reg)</th><th>Price (Lg)</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="p-body"></tbody>
+                    </table>
+                </div>
+                <div id="view-archive" style="display:none;">
+                    <h2>Order History</h2>
+                    <div class="stats-grid" style="margin-bottom:20px;">
+                        <div class="stat-card">
+                            <div style="font-size: 12px; color: #888;">Total Completed Orders</div>
+                            <div class="stat-val" id="archive-total">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 12px; color: #888;">Total Revenue</div>
+                            <div class="stat-val">£<span id="archive-rev">0.00</span></div>
+                        </div>
+                    </div>
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Product(s)</th>
+                                <th>Quantity</th>
+                                <th>Total Price</th>
+                                <th>Time</th>
+                                <th>Station</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archive-body"></tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal" id="p-modal">
+        <div class="modal-body">
+            <h3>Add New Drink</h3>
+            <input type="text" id="p-name" placeholder="Drink Name">
+            <input type="number" id="p-p1" placeholder="Regular Price (£)">
+            <input type="number" id="p-p2" placeholder="Large Price (£) - Optional">
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button onclick="closePModal()" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ddd; cursor:pointer;">Cancel</button>
+                <button onclick="saveP()" style="flex:1; padding:10px; border-radius:8px; background:#000; color:#fff; border:none; cursor:pointer;">Save Product</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入外部JS文件 -->
+    <script src="admin.js"></script>
+</body>
+<script src="admin.js"></script>
+</html>
