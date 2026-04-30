@@ -1,151 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Whistlestop Coffee Hut</title>
+    <title>Whistlestop Coffee Hut - Forest Edition</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="CSS/customer.css">
 </head>
 <body>
-<div class="header" style="
-        background: linear-gradient(135deg, #FFF0E1, #FFE4C4);
-        border-bottom: 1px solid #FFD9B8;
-        position: relative;
-        z-index: 1;
-    ">
-    <div id="train-info" style="padding:10px 20px; background:white; font-size:12px;"></div>
-    <div class="loc-select">
-        <select id="station">
-            <option>Cramlington Station</option>
-            <option>Newcastle Station</option>
-            <option>Morpeth Station</option>
-        </select>
-        <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: #ccc;"></i>
-    </div>
-    <div id="timeBox" class="biz-hours"></div>
-</div>
 
-<div class="container"style="padding: 0 130px;">
-    <div id="pg-home" class="page">
-        <div class="hero-section"style="
-          background-image: url('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1000');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          background-color: rgba(255, 235, 205, 0.6);
-          background-blend-mode: overlay;">
-            <div class="hero-bg-animation"></div>
-            <div class="sketch-canvas">
-                <i class="fa-solid fa-mug-hot" style="font-size: 50px;"></i>
+   
+    <div class="immersive-header">
+        <div class="top-info-bar">
+            <div class="loc-select-box">
+                <i class="fa-solid fa-location-dot"></i>
+                <select id="station">
+                    <option>Cramlington Station</option>
+                    <option>Newcastle Station</option>
+                    <option>Morpeth Station</option>
+                </select>
+                <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
             </div>
-            <div class="new-label">NEW ARRIVAL</div>
-            <h1>Sea Salt<br>Hot Chocolate</h1>
-            <p style="font-size: 12px; margin: 15px 0; color: #666; font-weight: 500;">
-                This season's new product: Hot Chocolate<br>
-            </p>
+            <div id="timeBox" class="biz-status-box"></div>
         </div>
-
-        <button class="btn-ghost" onclick="navTo('pg-order')">ORDER NOW</button>
+        <div class="brand-hero">
+            <h1>Whistlestop Coffee Hut</h1>
+            <p>Premium Coffee & Artisan Spring Water</p>
+        </div>
+        <div class="header-curve-mask"></div>
     </div>
 
-    <div id="pg-order" class="page active">
-        <div id="menu-items"></div>
-    </div>
-
-    <div id="pg-record" class="page">
-        <div id="login-ui" class="hero-section" style="padding: 30px 20px; border-style: dashed;">
-            <p style="margin: 0 0 20px 0; font-weight: 800;">Member Login</p>
-            <input type="text" placeholder="Account" id="u-acc" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px;">
-            <input type="password" placeholder="Password" id="u-pwd" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:20px;">
-            <button class="btn-black" onclick="login()" style="padding:12px;">SIGN IN</button>
-        </div>
-
-        <div class="member-card" id="member-ui" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:18px; font-weight:800; letter-spacing:1px;">COFFEE PASS</span>
-                <span id="cup-text" style="font-size:12px; color:var(--hey-gold);">0/10</span>
+    <div class="container">
+        
+        <div id="pg-order" class="page active">
+            <div class="section-title-group">
+                <h2>Menu</h2>
+                <div class="gold-underline"></div>
             </div>
-            <div class="cup-track" id="cup-grid"></div>
-            <p style="font-size:10px; opacity:0.4; margin-top:20px;">* Buy 9 cups and the 10th one is free. The system will automatically recognize this and deduct the cost.</p>
+            
+            <div id="menu-items"></div>
         </div>
 
-        <div id="orderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
-            <div style="background:#fff;width:90%;max-width:380px;border-radius:16px;padding:20px;max-height:80vh;overflow-y:auto;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-                    <h3 style="margin:0;">Order Detail</h3>
-                    <button onclick="closeOrderModal()" style="border:none;background:none;font-size:20px;cursor:pointer;">×</button>
+       
+        <div id="pg-record" class="page">
+            
+            <div id="login-ui" class="auth-frame-large">
+                <div class="auth-header">
+                    <i class="fa-solid fa-circle-user"></i>
+                    <span>Member Login</span>
                 </div>
-                <div id="modalItems" style="border-top:1px solid #eee;padding-top:10px;"></div>
-                <div style="margin-top:15px;padding-top:10px;border-top:1px solid #eee;font-weight:bold;text-align:right;"></div>
+                <div class="auth-body">
+                    <div class="auth-row">
+                        <label>Account</label>
+                        <input type="text" id="u-acc" placeholder="Email / Phone">
+                    </div>
+                    <div class="auth-row">
+                        <label>Password</label>
+                        <input type="password" id="u-pwd" placeholder="Enter password">
+                    </div>
+                </div>
+                <button class="btn-primary-large" onclick="login()">SIGN IN</button>
+            </div>
+
+           
+            <div id="member-ui" class="membership-hero-frame" style="display:none;">
+                <div class="membership-card-premium">
+                    <div class="card-inner-top">
+                        <div class="pass-label">
+                            <i class="fa-solid fa-leaf"></i>
+                            <span>COFFEE PASS</span>
+                        </div>
+                        <div class="status-pill">GOLD STATUS</div>
+                    </div>
+                    
+                    <div class="loyalty-display-box">
+                        <div class="progress-info">
+                            <span class="label">Loyalty Progress</span>
+                            <span id="cup-text" class="cup-count">0/10 Cups</span>
+                        </div>
+                        <div class="cup-slots-row" id="cup-grid">
+                           
+                        </div>
+                    </div>
+
+                    <div class="reward-notice">
+                        <i class="fa-solid fa-gift"></i>
+                        <span>Collect 10 cups to receive a free beverage on us.</span>
+                    </div>
+                </div>
+            </div>
+
+           
+            <div class="history-section">
+                <div class="section-heading">Pending Orders</div>
+                <div id="pending-orders" class="content-box-isolated">
+                    <div class="empty-placeholder">No active orders</div>
+                </div>
+                
+                <div class="section-heading">Recent History</div>
+                <div id="orders-box" class="content-box-isolated">
+                    <div class="empty-placeholder">No history found.</div>
+                </div>
             </div>
         </div>
-
-        <h3 style="font-size:16px; margin: 30px 0 15px;">pending orders、</h3>
-        <div id="pending-orders" style="font-size: 13px; color: #999;"> no pending orders</div>
-        <h3 style="font-size:16px; margin: 30px 0 15px;">Orders history</h3>
-        <div id="orders-box" style="font-size: 13px; color: #999;">No record found.</div>
-    </div>
-</div>
-
-<div class="float-pay" id="pay-bar">
-    <div style="font-size:14px; font-weight:800;">Bag · <span id="cart-q">0</span> Cups</div>
-    <div onclick="checkout()" style="cursor:pointer; font-weight:900;">Checkout £<span id="cart-p">0.00</span> <i class="fa-solid fa-arrow-right"></i></div>
-</div>
-
-<div style="position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; z-index:100;" id="mask" onclick="closeDrawer()"></div>
-<div style="position:fixed; bottom:-100%; left:0; width:100%; background:#fff; border-radius:30px 30px 0 0; padding:35px 25px; z-index:101; transition:0.4s cubic-bezier(0,1,0,1);" id="drawer">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 id="d-name" style="margin:0; font-size:24px;">Coffee</h2>
-        <span id="d-price" style="font-size:22px; font-weight:900;">£0.00</span>
     </div>
 
-    <p class="config-label">Milk Options</p>
-    <div class="opt-grid">
-        <button class="opt-btn active" onclick="setOpt(this,'milk')">Whole Milk</button>
-        <button class="opt-btn" onclick="setOpt(this,'milk')">Oat Milk</button>
-        <button class="opt-btn" onclick="setOpt(this,'milk')">Skimmed Milk</button>
-        <button class="opt-btn" onclick="setOpt(this,'milk')">Coconut Milk</button>
-    </div>
-
-    <div class="config-group">
-        <span class="config-label">Sugar Level</span>
-        <div class="opt-grid">
-            <button class="opt-btn active" onclick="setOpt(this,'sugar')">No Sugar</button>
-            <button class="opt-btn" onclick="setOpt(this,'sugar')">30% Sugar</button>
-            <button class="opt-btn" onclick="setOpt(this,'sugar')">50% Sugar</button>
-            <button class="opt-btn" onclick="setOpt(this,'sugar')">100% Sugar</button>
+    
+    <div class="float-pay-bar" id="pay-bar">
+        <div class="pay-content">
+            <div class="cart-details">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span>Bag Total: £<span id="cart-p-bar">0.00</span></span>
+            </div>
+            <div class="pay-action" onclick="openCart()">
+                VIEW CART <i class="fa-solid fa-chevron-right"></i>
+            </div>
         </div>
     </div>
 
-    <div class="config-group">
-        <span class="config-label">Cup Size</span>
-        <div class="opt-grid" id="size-box">
+    <div id="mask" onclick="closeDrawer()"></div>
+    <div id="drawer"></div>
+    <div id="cart-overlay" onclick="if(event.target==this) closeCart()"></div>
+
+    <div class="nav-bar-main">
+        <div class="nav-item active" onclick="navTo('pg-order')">
+            <i class="fa-solid fa-mug-hot"></i>
+            <span>Order</span>
+        </div>
+        <div class="nav-item" onclick="navTo('pg-record')">
+            <i class="fa-solid fa-user"></i>
+            <span>Account</span>
         </div>
     </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:30px; padding-top:20px; border-top:1px solid #f6f6f6;">
-        <span style="font-weight:800; font-size:14px;">Arrival Time</span>
-        <input type="time" id="p-time" style="border:1px solid #eee; padding:8px; border-radius:10px; font-weight:800;">
-    </div>
-
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
-        <span style="font-weight:800; font-size:14px;">Quantity</span>
-        <div style="display:flex; align-items:center; gap:20px;">
-            <button onclick="qty(-1)" style="width:36px; height:36px; border:2px solid #000; border-radius:50%; background:none; font-weight:900;">-</button>
-            <span id="q-val" style="font-size:20px; font-weight:900;">1</span>
-            <button onclick="qty(1)" style="width:36px; height:36px; border:2px solid #000; border-radius:50%; background:none; font-weight:900;">+</button>
-        </div>
-    </div>
-
-    <button class="btn-black" onclick="addBag()" style="margin-top:35px;">ADD TO BAG</button>
-</div>
-<div class="nav-bar">
-    <div class="nav-item" onclick="navTo('pg-home')"><i class="fa-solid fa-house-chimney"></i>HomePage</div>
-    <div class="nav-item active" onclick="navTo('pg-order')"><i class="fa-solid fa-mug-hot"></i>Ord</div>
-    <div class="nav-item" onclick="navTo('pg-record')"><i class="fa-solid fa-id-card-clip"></i>Me</div>
-</div>
-
-<script src="JS/customer.js"></script>
+    <script src="JS/customer.js"></script>
 </body>
 </html>
