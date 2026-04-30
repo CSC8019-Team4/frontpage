@@ -1,195 +1,294 @@
-const KEY_ORDERS = 'pendingOrders';
-const KEY_HISTORY = 'ws_h';  
-const menu = [
-    { name: 'Americano', p1: 1.50, p2: 2.00, icon: 'fa-coffee', img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop', id:1 },
-    { name: 'Americano with milk', p1: 2.00, icon: 'fa-mug-hot', img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop', id:2 },
-    { name: 'Latte', p1: 2.50, p2: 3.00, icon: 'fa-droplet', img: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=300&h=200&fit=crop', id:3 },
-    { name: 'Cappuccino', p1: 2.50, p2: 3.00, icon: 'fa-cloud', img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&h=200&fit=crop', id:4 },
-    { name: 'Hot Chocolate', p1: 2.00, p2: 2.50, icon: 'fa-cookie', img: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=300&h=200&fit=crop', id:5 },
-    { name: 'Mocha', p1: 2.50, p2: 3.00, icon: 'fa-mug-hot', img: 'https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=300&h=200&fit=crop', id:6 },
-    { name: 'Mineral Water', p1: 1.00, p2: null, icon: 'fa-bottle-water', img: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=300&h=200&fit=crop', id:7 }
+const API_BASE = 'http://localhost:8080';
+const KEY_CUSTOMER_ORDERS = 'ws_customer_order_ids';
+
+const fallbackMenu = [
+    { id: 1, name: 'Americano', regularPrice: 1.50, largePrice: 2.00, img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop' },
+    { id: 2, name: 'Americano with milk', regularPrice: 2.00, largePrice: 2.50, img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop' },
+    { id: 3, name: 'Latte', regularPrice: 2.50, largePrice: 3.00, img: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=300&h=200&fit=crop' },
+    { id: 4, name: 'Cappuccino', regularPrice: 2.50, largePrice: 3.00, img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&h=200&fit=crop' },
+    { id: 5, name: 'Hot Chocolate', regularPrice: 2.00, largePrice: 2.50, img: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=300&h=200&fit=crop' },
+    { id: 6, name: 'Mocha', regularPrice: 2.50, largePrice: 3.00, img: 'https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=300&h=200&fit=crop' },
+    { id: 7, name: 'Mineral Water', regularPrice: 1.00, largePrice: null, img: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=300&h=200&fit=crop' }
 ];
 
+let menu = [...fallbackMenu];
 let state = {
     bag: [],
     curr: null,
     q: 1,
     bp: 0,
+    selectedSize: 'REGULAR',
     pendingOrders: [],
     history: [],
     isLogin: false
 };
 
+async function apiFetch(path, options = {}) {
+    const response = await fetch(`${API_BASE}${path}`, options);
+    if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`${response.status} ${body}`);
+    }
+    return response.status === 204 ? null : response.json();
+}
+
 function updateTime() {
-    const n = new Date(), d = n.getDay(), h = n.getHours() + n.getMinutes()/60;
-    let range = "", open = false;
-    if(d >= 1 && d <= 5) { range = "06:30-19:00"; open = (h>=6.5 && h<19); }
-    else if(d === 6) { range = "07:00-18:00"; open = (h>=7 && h<18); }
-    else { range = "Closed"; }
-    document.getElementById('timeBox').innerHTML = `<span class="status-dot ${open?'dot-open':'dot-close'}"></span>${open?'Open':'Closed'}<br>${range}`;
-}
+    const n = new Date();
+    const d = n.getDay();
+    const h = n.getHours() + n.getMinutes() / 60;
+    let range = '';
+    let open = false;
 
-function renderMenu() {
-    document.getElementById('menu-items').innerHTML = menu.map(i => `
-        <div class="menu-card" onclick="openDrawer('${i.name}')">
-            <div class="menu-img-container">
-                <img src="${i.img}" alt="${i.name}" class="menu-img">
-            </div>
-            <div style="font-weight: 700; font-size: 14px;">${i.name}</div>
-            <div style="font-size: 13px; font-weight: bold;">£${i.p1.toFixed(2)}</div>
-        </div>
-    `).join('');
-}
+    if (d >= 1 && d <= 5) {
+        range = '06:30-19:00';
+        open = h >= 6.5 && h < 19;
+    } else if (d === 6) {
+        range = '07:00-18:00';
+        open = h >= 7 && h < 18;
+    } else {
+        range = 'Closed';
+    }
 
-function navTo(id) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    if(event?.currentTarget) event.currentTarget.classList.add('active');
-
-    if (id === 'pg-record') {
-        renderPendingOrders(); 
-        renderHistory();      
+    const box = document.getElementById('timeBox');
+    if (box) {
+        box.innerHTML = `<span class="status-dot ${open ? 'dot-open' : 'dot-close'}"></span>${open ? 'Open' : 'Closed'}<br>${range}`;
     }
 }
 
-function openDrawer(name) {
-    state.curr = menu.find(m => m.name === name);
-    state.q = 1; 
-    state.bp = state.curr.p1; 
-    document.getElementById('drawer').innerHTML = `
-    <div style="padding: 20px; display: flex; flex-wrap: wrap; gap: 20px;">
-      <div style="width: 45%; min-width: 150px; max-width: 220px; aspect-ratio: 1/1; border-radius: 14px; overflow: hidden; flex-shrink: 0;">
-        <img src="${state.curr.img}" 
-             style="width:100%; height:100%; object-fit:cover;"
-             onclick="window.open('${state.curr.img}','_blank')">
-      </div>
-      <div style="flex: 1; min-width: 250px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <h2 id="d-name" style="margin:0; font-size:22px;">${state.curr.name}</h2>
-          <span id="d-price" style="font-size:20px; font-weight:900;">£${state.bp.toFixed(2)}</span>
-        </div>
+async function loadMenu() {
+    try {
+        const backendMenu = await apiFetch('/api/menu');
+        menu = backendMenu.map(item => ({
+            id: item.id,
+            name: item.name,
+            regularPrice: Number(item.regularPrice),
+            largePrice: item.largePrice == null ? null : Number(item.largePrice),
+            img: imageForItem(item.name)
+        }));
+    } catch (error) {
+        console.warn('Using fallback menu because backend menu failed:', error.message);
+        menu = [...fallbackMenu];
+    }
+    renderMenu();
+}
 
-        <p class="config-label">MILK OPTIONS</p>
+function imageForItem(name) {
+    const fallback = fallbackMenu.find(i => i.name.toLowerCase() === String(name).toLowerCase());
+    return fallback?.img || 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=200&fit=crop';
+}
+
+function renderMenu() {
+    const menuBox = document.getElementById('menu-items');
+    if (!menuBox) return;
+
+    menuBox.innerHTML = menu.map(item => `
+    <div class="menu-card" onclick="openDrawer(${item.id})">
+      <div class="menu-img-container">
+        <img src="${item.img}" alt="${item.name}" class="menu-img">
+      </div>
+      <div style="font-weight:700;font-size:14px;">${item.name}</div>
+      <div style="font-size:13px;font-weight:bold;">£${Number(item.regularPrice).toFixed(2)}</div>
+    </div>
+  `).join('');
+}
+
+function navTo(id) {
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+    document.getElementById(id)?.classList.add('active');
+
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    if (window.event?.currentTarget) window.event.currentTarget.classList.add('active');
+
+    if (id === 'pg-record') {
+        refreshCustomerOrders();
+    }
+}
+
+function openDrawer(menuItemId) {
+    state.curr = menu.find(item => item.id === menuItemId);
+    if (!state.curr) return;
+
+    state.q = 1;
+    state.bp = Number(state.curr.regularPrice);
+    state.selectedSize = 'REGULAR';
+
+    const drawer = document.getElementById('drawer');
+    drawer.innerHTML = `
+    <div style="padding:20px;display:flex;flex-wrap:wrap;gap:20px;">
+      <div style="width:45%;min-width:150px;max-width:220px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;flex-shrink:0;">
+        <img src="${state.curr.img}" style="width:100%;height:100%;object-fit:cover;">
+      </div>
+      <div style="flex:1;min-width:250px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 id="d-name" style="margin:0;font-size:22px;">${state.curr.name}</h2>
+          <span id="d-price" style="font-size:20px;font-weight:900;">£${state.bp.toFixed(2)}</span>
+        </div>
+        <p class="config-label">Milk options</p>
         <div class="opt-grid">
           <button class="opt-btn active" onclick="setOpt(this,'milk')">Whole Milk</button>
           <button class="opt-btn" onclick="setOpt(this,'milk')">Oat Milk</button>
           <button class="opt-btn" onclick="setOpt(this,'milk')">Skimmed Milk</button>
           <button class="opt-btn" onclick="setOpt(this,'milk')">Coconut Milk</button>
         </div>
-
-        <p class="config-label">SUGAR LEVEL</p>
+        <p class="config-label">Sugar level</p>
         <div class="opt-grid">
           <button class="opt-btn active" onclick="setOpt(this,'sugar')">No Sugar</button>
           <button class="opt-btn" onclick="setOpt(this,'sugar')">30% Sugar</button>
           <button class="opt-btn" onclick="setOpt(this,'sugar')">50% Sugar</button>
           <button class="opt-btn" onclick="setOpt(this,'sugar')">100% Sugar</button>
         </div>
-
-        <p class="config-label">CUP SIZE</p>
+        <p class="config-label">Cup size</p>
         <div class="opt-grid" id="size-box">
-          <button class="opt-btn active" onclick="selSize(this, ${state.curr.p1})">Regular</button>
-          ${state.curr.p2 ? `<button class="opt-btn" onclick="selSize(this, ${state.curr.p2})">Large</button>` : ''}
+          <button class="opt-btn active" onclick="selSize(this, ${Number(state.curr.regularPrice)}, 'REGULAR')">Regular</button>
+          ${state.curr.largePrice ? `<button class="opt-btn" onclick="selSize(this, ${Number(state.curr.largePrice)}, 'LARGE')">Large</button>` : ''}
         </div>
       </div>
       <div style="width:100%;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
-          <span style="font-weight:800;">Arrival Time</span>
-          <input type="time" id="p-time" style="border:1px solid #eee; padding:6px; border-radius:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:15px;border-top:1px solid #eee;">
+          <span style="font-weight:800;">Pickup time</span>
+          <input type="time" id="p-time" style="border:1px solid #eee;padding:6px;border-radius:8px;">
         </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;">
           <span style="font-weight:800;">Quantity</span>
-          <div style="display:flex; gap:15px; align-items:center;">
-            <button onclick="qty(-1)" style="width:32px; height:32px; border:2px solid #000; border-radius:50%; background:#fff;">-</button>
-            <span id="q-val" style="font-size:18px; font-weight:900;">1</span>
-            <button onclick="qty(1)" style="width:32px; height:32px; border:2px solid #000; border-radius:50%; background:#fff;">+</button>
+          <div style="display:flex;gap:15px;align-items:center;">
+            <button onclick="qty(-1)" style="width:32px;height:32px;border:2px solid #000;border-radius:50%;background:#fff;">-</button>
+            <span id="q-val" style="font-size:18px;font-weight:900;">1</span>
+            <button onclick="qty(1)" style="width:32px;height:32px;border:2px solid #000;border-radius:50%;background:#fff;">+</button>
           </div>
         </div>
-
-        <button class="btn-black" onclick="addBag()" style="margin-top:20px; width:100%;">ADD TO BAG</button>
+        <button class="btn-black" onclick="addBag()" style="margin-top:20px;width:100%;">Add to bag</button>
       </div>
-    </div>
-    `;
+    </div>`;
 
     document.getElementById('mask').style.display = 'block';
-    setTimeout(() => document.getElementById('drawer').style.bottom = '0', 10);
+    setTimeout(() => drawer.style.bottom = '0', 10);
     updatePrice();
 }
 
+function closeDrawer() {
+    const drawer = document.getElementById('drawer');
+    drawer.style.bottom = '-100%';
+    setTimeout(() => document.getElementById('mask').style.display = 'none', 300);
+}
 
-function closeDrawer() { 
-    document.getElementById('drawer').style.bottom = '-100%'; 
-    setTimeout(() => {
-        document.getElementById('mask').style.display = 'none';
-    }, 300); 
+function selSize(el, price, size) {
+    document.querySelectorAll('#size-box .opt-btn').forEach(item => item.classList.remove('active'));
+    el.classList.add('active');
+    state.bp = Number(price);
+    state.selectedSize = size;
+    updatePrice();
+}
+
+function setOpt(el, type) {
+    const group = el.parentElement;
+    group.querySelectorAll('.opt-btn').forEach(btn => btn.classList.remove('active'));
+    el.classList.add('active');
+}
+
+function qty(v) {
+    state.q = Math.max(1, Math.min(20, state.q + v));
+    updatePrice();
+}
+
+function updatePrice() {
+    const qVal = document.getElementById('q-val');
+    const dPrice = document.getElementById('d-price');
+    if (qVal) qVal.innerText = state.q;
+    if (dPrice) dPrice.innerText = `£${(state.bp * state.q).toFixed(2)}`;
+}
+
+function addBag() {
+    const pickTime = document.getElementById('p-time')?.value;
+    if (!pickTime) {
+        alert('Please choose a pickup time.');
+        return;
+    }
+
+    state.bag.push({
+        menuItemId: state.curr.id,
+        name: state.curr.name,
+        p: state.bp,
+        q: state.q,
+        size: state.selectedSize,
+        pickTime
+    });
+
+    updateBag();
+    closeDrawer();
+}
+
+function updateBag() {
+    const payBar = document.getElementById('pay-bar');
+    if (!payBar) return;
+
+    if (state.bag.length === 0) {
+        payBar.style.display = 'none';
+        return;
+    }
+
+    payBar.style.display = 'flex';
+    const totalQty = state.bag.reduce((sum, item) => sum + item.q, 0);
+    const totalPrice = state.bag.reduce((sum, item) => sum + item.p * item.q, 0).toFixed(2);
+    payBar.innerHTML = `
+    <div style="flex:1;"><b>${totalQty} items</b> <span style="font-size:12px;color:#888;">£${totalPrice}</span></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="openCart()" style="background:#fff;color:#000;border:1px solid #000;padding:8px 15px;border-radius:12px;font-weight:700;cursor:pointer;">View Cart</button>
+      <button onclick="checkout()" style="background:#fff;color:#000;border:1px solid #000;padding:8px 15px;border-radius:12px;font-weight:700;cursor:pointer;">Checkout</button>
+    </div>`;
 }
 
 function openCart() {
     if (state.bag.length === 0) {
-        alert("Your cart is empty!");
+        alert('Your cart is empty.');
         return;
     }
+
+    const existing = document.getElementById('cart-modal');
+    if (existing) existing.remove();
+
+    const totalPrice = state.bag.reduce((sum, item) => sum + item.p * item.q, 0).toFixed(2);
     const cartModal = document.createElement('div');
     cartModal.id = 'cart-modal';
-    cartModal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.5); z-index: 998; display: flex;
-        justify-content: center; align-items: center;
-    `;
-
-    let cartHtml = `
-        <div style="background: #fff; width: 90%; max-width: 500px; border-radius: 20px; padding: 25px; max-height: 80vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0; font-weight: 800;">Your Cart</h3>
-                <button onclick="closeCart()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
-            </div>
-            <div id="cart-items">
-    `;
-
-    state.bag.forEach((item, idx) => {
-        cartHtml += `
-            <div style="display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #eee;">
-                <div style="flex: 1;">
-                    <div style="font-weight: 700; font-size: 14px;">${item.name}</div>
-                    <div style="font-size: 12px; color: #888;">${item.size} | ${item.milk} | ${item.sugar}</div>
-                    <div style="font-size: 13px; font-weight: bold; margin-top: 5px;">£${item.p.toFixed(2)}/item</div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <button onclick="updateCartQty(${idx}, -1)" style="width: 30px; height: 30px; border: 1px solid #eee; border-radius: 50%; background: none; cursor: pointer;">-</button>
-                    <span>${item.q}</span>
-                    <button onclick="updateCartQty(${idx}, 1)" style="width: 30px; height: 30px; border: 1px solid #eee; border-radius: 50%; background: none; cursor: pointer;">+</button>
-                    <button onclick="removeCartItem(${idx})" style="color: #ff3b30; background: none; border: none; cursor: pointer; font-size: 16px;">🗑</button>
-                </div>
-            </div>
-        `;
-    });
-   
-    const totalPrice = state.bag.reduce((sum, item) => sum + (item.p * item.q), 0).toFixed(2);
-    cartHtml += `
-            </div>
-            <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #000;">
-                <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 18px; margin-bottom: 15px;">
-                    <span>Total</span>
-                    <span>£${totalPrice}</span>
-                </div>
-                <button onclick="checkout(); closeCart()" class="btn-black" style="margin-bottom: 10px;">Checkout</button>
-                <button onclick="closeCart()" class="btn-ghost">Cancel</button>
-            </div>
+    cartModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;display:flex;justify-content:center;align-items:center;';
+    cartModal.innerHTML = `
+    <div style="background:#fff;width:90%;max-width:500px;border-radius:20px;padding:25px;max-height:80vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="margin:0;font-weight:800;">Your Cart</h3>
+        <button onclick="closeCart()" style="background:none;border:none;font-size:20px;cursor:pointer;">×</button>
+      </div>
+      ${state.bag.map((item, idx) => `
+        <div style="display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid #eee;">
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${item.name}</div>
+            <div style="font-size:12px;color:#888;">${item.size} | pickup ${item.pickTime}</div>
+            <div style="font-size:13px;font-weight:bold;margin-top:5px;">£${item.p.toFixed(2)}/item</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onclick="updateCartQty(${idx}, -1)">-</button>
+            <span>${item.q}</span>
+            <button onclick="updateCartQty(${idx}, 1)">+</button>
+            <button onclick="removeCartItem(${idx})" style="color:#ff3b30;background:none;border:none;cursor:pointer;">Remove</button>
+          </div>
+        </div>`).join('')}
+      <div style="margin-top:20px;padding-top:20px;border-top:2px solid #000;">
+        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:18px;margin-bottom:15px;">
+          <span>Total</span><span>£${totalPrice}</span>
         </div>
-    `;
-    cartModal.innerHTML = cartHtml;
+        <button onclick="checkout(); closeCart();" class="btn-black" style="margin-bottom:10px;">Checkout</button>
+      </div>
+    </div>`;
     document.body.appendChild(cartModal);
 }
+
 function closeCart() {
-    const cartModal = document.getElementById('cart-modal');
-    if (cartModal) cartModal.remove();
+    document.getElementById('cart-modal')?.remove();
 }
+
 function updateCartQty(idx, val) {
-    state.bag[idx].q = Math.max(1, state.bag[idx].q + val);
-    updateBag(); 
-    closeCart(); 
-    openCart(); 
+    state.bag[idx].q = Math.max(1, Math.min(20, state.bag[idx].q + val));
+    updateBag();
+    closeCart();
+    openCart();
 }
 
 function removeCartItem(idx) {
@@ -198,265 +297,220 @@ function removeCartItem(idx) {
     closeCart();
     if (state.bag.length > 0) openCart();
 }
-function selSize(el, price) {
-    document.querySelectorAll('#size-box .opt-btn').forEach(item => {
-        item.classList.remove('active');
-    });
-    el.classList.add('active');
-    state.bp = price;
-    updatePrice();
+
+function buildPickupDateTime(timeValue) {
+    const now = new Date();
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    const pickup = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+    if (pickup < now) pickup.setDate(pickup.getDate() + 1);
+
+    const yyyy = pickup.getFullYear();
+    const mm = String(pickup.getMonth() + 1).padStart(2, '0');
+    const dd = String(pickup.getDate()).padStart(2, '0');
+    const hh = String(pickup.getHours()).padStart(2, '0');
+    const min = String(pickup.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
 }
 
-function setOpt(el, type) {
-    document.querySelectorAll(`.opt-btn`).forEach(btn => {
-        const btnType = btn.onclick.toString().includes('milk') ? 'milk' : 'sugar';
-        if (btnType === type) {
-            btn.classList.remove('active');
-        }
-    });
-    el.classList.add('active');
-}
-
-function qty(v) { 
-    state.q = Math.max(1, state.q + v); 
-    updatePrice(); 
-}
-
-function updatePrice() { 
-    document.getElementById('q-val').innerText = state.q;
-    const total = (state.bp * state.q).toFixed(2);
-    document.getElementById('d-price').innerText = `£${total}`;
-}
-
-function addBag() {
-    const selectedMilk = document.querySelector('.opt-btn.active[onclick*="milk"]')?.innerText || "Whole Milk";
-    const selectedSugar = document.querySelector('.opt-btn.active[onclick*="sugar"]')?.innerText || "No Sugar";
-    const selectedSize = document.querySelector('#size-box .opt-btn.active')?.innerText || "Regular";
-    const pickTime = document.getElementById('p-time')?.value || '';
-
-    state.bag.push({ 
-        name: state.curr.name, 
-        p: state.bp, 
-        q: state.q,
-        milk: selectedMilk,
-        sugar: selectedSugar,
-        size: selectedSize,
-        pickTime: pickTime,
-        menuItemId: state.curr.id
-    });
-
-    updateBag();
-    closeDrawer();
-    alert(`${state.q} x ${state.curr.name} added to bag!`);
-}
-
-function updateBag() {
-    const payBar = document.getElementById('pay-bar');
-    if(state.bag.length > 0) {
-        payBar.style.display = 'flex';
-        const totalQty = state.bag.reduce((sum, item) => sum + item.q, 0);
-        const totalPrice = state.bag.reduce((sum, item) => sum + (item.p * item.q), 0).toFixed(2);
-        payBar.innerHTML = `
-            <div style="flex: 1;">
-                <span style="font-weight: 800;">${totalQty} items</span>
-                <span style="font-size: 12px; color: #888; margin-left: 5px;">£${totalPrice}</span>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="openCart()" style="
-                    background: #fff; color: #000; border: 1px solid #000;
-                    padding: 8px 15px; border-radius: 12px; font-weight: 700;
-                    cursor: pointer;
-                ">View Cart</button>
-                <button onclick="checkout()" style="
-                    background: #fff; color: #000; border: 1px solid #000;
-                    padding: 8px 15px; border-radius: 12px; font-weight: 700;
-                    cursor: pointer;
-                ">Checkout</button>
-            </div>
-        `;
-    } else {
-        payBar.style.display = 'none';
-    }
-}
-
-
-function checkout() {
-    if (!state.bag.length) {
-        alert("Shopping bag is empty!");
+async function checkout() {
+    if (state.bag.length === 0) {
+        alert('Shopping bag is empty.');
         return;
     }
-    const pickupTimeValue = document.getElementById('p-time')?.value || "";
-    const now = new Date();
-    const formattedTime = pickupTimeValue 
-        ? `${now.toISOString().split('T')[0]}T${pickupTimeValue}:00`
-        : now.toISOString();
+
+    const customerName = prompt('Please enter your name:', 'Customer');
+    const customerEmail = prompt('Please enter your email:', 'customer@test.com');
+    if (!customerName || !customerEmail) return;
 
     const orderPayload = {
-        customerName: "Customer",
-        customerEmail: "customer@test.com",
-        pickupTime: formattedTime,
+        customerName,
+        customerEmail,
+        pickupTime: buildPickupDateTime(state.bag[0].pickTime),
         items: state.bag.map(item => ({
             menuItemId: item.menuItemId,
-            size: item.size.toUpperCase(),
+            size: item.size,
             quantity: item.q
         }))
     };
-    fetch("http://localhost:8080/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderPayload)
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Backend disconnected");
-        return res.json();
-    })
-    .then(data => {
-        alert("Order placed successfully!");
+
+    try {
+        const savedOrder = await apiFetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload)
+        });
+
+        const ids = JSON.parse(localStorage.getItem(KEY_CUSTOMER_ORDERS) || '[]');
+        ids.push(savedOrder.id);
+        localStorage.setItem(KEY_CUSTOMER_ORDERS, JSON.stringify([...new Set(ids)]));
+
+        state.pendingOrders.push(savedOrder);
         state.bag = [];
         updateBag();
-        navTo("pg-record");
-    })
-    .catch(err => {
-        const mockOrder = {
-            id: Date.now(),
-            time: new Date().toLocaleString(),
-            status: "PENDING",
-            total: state.bag.reduce((a,b)=>a+(b.p*b.q),0),
-            items: state.bag.map(i=>({name:i.name, quantity:i.q}))
-        };
-        state.pendingOrders = [mockOrder];
-        state.history.push(mockOrder);
-        state.bag = [];
-        updateBag();
-        navTo("pg-record");;
-    });
+        alert(`Order placed successfully. Order #${savedOrder.id}`);
+        navTo('pg-record');
+    } catch (error) {
+        console.error(error);
+        alert(`Could not place order: ${error.message}`);
+    }
 }
 
 function login() {
-    const account = document.getElementById('u-acc').value.trim();
-    const password = document.getElementById('u-pwd').value.trim();
-    
-    if(!account || !password) {
-        alert('Username and password cannot be empty!');
+    const account = document.getElementById('u-acc')?.value.trim();
+    const password = document.getElementById('u-pwd')?.value.trim();
+    if (!account || !password) {
+        alert('Username and password cannot be empty.');
         return;
     }
-
     state.isLogin = true;
     document.getElementById('login-ui').style.display = 'none';
     document.getElementById('member-ui').style.display = 'block';
-    loadOrderData();
-    alert(`Welcome back, ${account}!`);
+    refreshCustomerOrders();
+}
+
+async function refreshCustomerOrders() {
+    const ids = JSON.parse(localStorage.getItem(KEY_CUSTOMER_ORDERS) || '[]');
+    const orders = [];
+
+    for (const id of ids) {
+        try {
+            orders.push(await apiFetch(`/api/orders/${id}`));
+        } catch (error) {
+            console.warn(`Could not load order ${id}`, error.message);
+        }
+    }
+
+    state.pendingOrders = orders.filter(order => !['COLLECTED', 'CANCELLED'].includes(order.status));
+    state.history = orders.filter(order => ['COLLECTED', 'CANCELLED'].includes(order.status));
+    renderPendingOrders();
+    renderHistory();
 }
 
 function loadOrderData() {
-    fetch("http://localhost:8080/api/orders/dashboard")
-    .then(res => res.json())
-    .then(data => {
-        state.pendingOrders = data;
-        renderPendingOrders();
-    });
-
-    fetch("http://localhost:8080/api/orders/archive")
-    .then(res => res.json())
-    .then(data => {
-        state.history = data;
-        renderHistory();
-    });
+    refreshCustomerOrders();
 }
 
 function renderHistory() {
     const box = document.getElementById('orders-box');
-    if (!state.history || state.history.length === 0) {
-        box.innerHTML = "No record found.";
+    if (!box) return;
+
+    if (!state.history.length) {
+        box.innerHTML = 'No record found.';
         return;
     }
-    box.innerHTML = state.history.map((order, idx) => `
-    <div style="background:#fff;padding:12px;border-radius:8px;margin:8px 0;border:1px solid #eee;">
-        <div style="display:flex;justify-content:space-between;font-weight:bold;">
-            <span>Order #${idx+1}</span>
-            <span style="color:#34c759;">Completed</span>
-        </div>
-        <div style="font-size:12px;color:#888;margin:4px 0;">${order.time || order.completedTime}</div>
-        ${order.items?.map(item => `
-        <div style="font-size:12px;padding:2px 0;">${item.name} ×${item.quantity} | £${(item.price * item.quantity).toFixed(2)}</div>
-        `).join('') || ''}
-        <div style="text-align:right;font-weight:bold;margin-top:4px;">Total: £${order.total?.toFixed(2) || 0}</div>
-    </div>
-    `).join('');
+
+    box.innerHTML = state.history.map(order => renderOrderCard(order, true)).join('');
 }
 
 function renderPendingOrders() {
     const box = document.getElementById('pending-orders');
-    if (!state.pendingOrders || state.pendingOrders.length === 0) {
-        box.innerHTML = "no pending orders";
+    if (!box) return;
+
+    if (!state.pendingOrders.length) {
+        box.innerHTML = 'No pending orders.';
         return;
     }
 
-    const statusText = { PENDING:"Pending", IN_PROGRESS:"Preparing", READY:"Ready for Pickup", COLLECTED:"Collected" };
-    const statusColor = { PENDING:"#ff9500", IN_PROGRESS:"#007aff", READY:"#34c759", COLLECTED:"#999" };
-
-    box.innerHTML = state.pendingOrders.map((order, idx) => `
-    <div style="background:#fff;padding:12px;border-radius:8px;margin:8px 0;border:1px solid #eee;color:#000;">
-        <div style="display:flex;justify-content:space-between;font-weight:bold;">
-            <span>Order #${order.id}</span>
-            <span style="color:${statusColor[order.status]}">${statusText[order.status]}</span>
-        </div>
-        <div style="font-size:12px;margin:4px 0;">${order.time}</div>
-        ${order.items?.map(item => `
-        <div style="font-size:12px;padding:2px 0;">${item.name} ×${item.quantity}</div>
-        `).join('') || ''}
-        <div style="text-align:right;font-weight:bold;margin-top:4px;">Total: £${order.total?.toFixed(2) || 0}</div>
-    </div>
-    `).join('');
+    box.innerHTML = state.pendingOrders.map(order => renderOrderCard(order, false)).join('');
 }
 
-if(state.isLogin) {
-    const totalCups = (state.history || []).reduce((sum, item) => sum + (item.items?.reduce((a,b)=>a+b.quantity,0)||0), 0);
-    const progress = totalCups % 10; 
-    document.getElementById('cup-text').innerText = `${progress}/10 Cups`;
-    document.getElementById('cup-grid').innerHTML = Array.from({length:10}, (_, i) => 
-        `<div class="cup-slot ${i < progress ? 'active' : ''}">
-            <i class="fa-solid fa-mug-hot"></i>
-        </div>`
-    ).join('');
+function renderOrderCard(order, history) {
+    const statusText = {
+        PENDING: 'Pending',
+        ACCEPTED: 'Accepted',
+        IN_PROGRESS: 'Preparing',
+        READY: 'Ready for pickup',
+        COLLECTED: 'Collected',
+        CANCELLED: 'Cancelled'
+    };
+
+    const items = (order.items || []).map(item => {
+        const name = item.menuItem?.name || 'Item';
+        const lineTotal = Number(item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2);
+        return `<div style="font-size:12px;padding:2px 0;">${name} ×${item.quantity} | ${item.size} | £${lineTotal}</div>`;
+    }).join('');
+
+    return `
+    <div style="background:#fff;padding:12px;border-radius:8px;margin:8px 0;border:1px solid #eee;color:#000;">
+      <div style="display:flex;justify-content:space-between;font-weight:bold;">
+        <span>Order #${order.id}</span>
+        <span>${statusText[order.status] || order.status}</span>
+      </div>
+      <div style="font-size:12px;color:#888;margin:4px 0;">Pickup: ${formatDateTime(order.pickupTime)}</div>
+      ${items}
+      <div style="text-align:right;font-weight:bold;margin-top:4px;">Total: £${Number(order.totalCost || 0).toFixed(2)}</div>
+    </div>`;
 }
 
 function openOrderModal(index) {
     const order = state.history[state.history.length - 1 - index];
     if (!order) return;
-    const modal = document.getElementById('orderModal');
-    const itemsBox = document.getElementById('modalItems');
-
-    itemsBox.innerHTML = (order.items || []).map(i => `
+    document.getElementById('modalItems').innerHTML = (order.items || []).map(item => `
     <div style="padding:8px 0;border-bottom:1px solid #f5f5f5;">
-        <div style="display:flex;justify-content:space-between;">
-            <span>${i.name} ×${i.quantity}</span>
-            <span>£${(i.price * i.quantity).toFixed(2)}</span>
-        </div>
-    </div>
-    `).join('');
-
-    modal.style.display = 'flex';
+      <div style="display:flex;justify-content:space-between;">
+        <span>${item.menuItem?.name || 'Item'} ×${item.quantity}</span>
+        <span>£${Number(item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2)}</span>
+      </div>
+    </div>`).join('');
+    document.getElementById('orderModal').style.display = 'flex';
 }
 
 function closeOrderModal() {
     document.getElementById('orderModal').style.display = 'none';
 }
 
-// Train arrivals
-function loadTrainArrivals() {
-  fetch("http://localhost:8080/api/trains/arrivals?count=3")
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById('train-info').innerText =
-    "Next Trains: " + JSON.stringify(data);
-  }).catch(()=>{
-    document.getElementById('train-info').innerText = "Next Trains: (Offline)";
-  });
+async function loadTrainBoard() {
+    const box = document.getElementById('train-info');
+    if (!box) return;
+
+    box.innerHTML = 'Loading train information...';
+    try {
+        const [arrivals, departures] = await Promise.all([
+            apiFetch('/api/trains/arrivals?count=3'),
+            apiFetch('/api/trains/departures?count=3')
+        ]);
+        box.innerHTML = `
+      <div style="font-weight:800;margin-bottom:6px;">Next trains at Cramlington</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><b>Arrivals</b>${renderTrainList(arrivals, 'arrival')}</div>
+        <div><b>Departures</b>${renderTrainList(departures, 'departure')}</div>
+      </div>`;
+    } catch (error) {
+        console.error(error);
+        box.innerHTML = 'Live train information is currently unavailable.';
+    }
 }
 
-loadTrainArrivals();
-updateTime(); 
-renderMenu(); 
-loadOrderData();
+function renderTrainList(trains, type) {
+    if (!trains || trains.length === 0) {
+        return '<div style="color:#777;margin-top:6px;">Live train information is currently unavailable.</div>';
+    }
+
+    return trains.slice(0, 3).map(train => {
+        const route = type === 'arrival' ? `From ${train.origin || 'Unknown'}` : `To ${train.destination || 'Unknown'}`;
+        const platform = train.platform ? `Platform ${train.platform}` : 'Platform TBC';
+        return `
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;">
+        <b>${train.scheduledTime || '--:--'}</b> ${route}<br>
+        <span style="color:#777;">${train.estimatedTime || 'Unknown'} · ${platform}</span>
+      </div>`;
+    }).join('');
+}
+
+function formatDateTime(value) {
+    if (!value) return 'Unknown';
+    return new Date(value).toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+updateTime();
+loadMenu();
+refreshCustomerOrders();
+loadTrainBoard();
 setInterval(updateTime, 60000);
+setInterval(refreshCustomerOrders, 10000);
+setInterval(loadTrainBoard, 60000);
