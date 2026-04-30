@@ -2,6 +2,26 @@ const KEY_MENU = 'ws_menu_data';
 const KEY_ORDERS = 'pendingOrders';
 const KEY_HISTORY = 'ws_order_history';
 const KEY_SHOP_STATS = 'ws_shop_stats';
+const API_BASE = "http://localhost:8080";
+const STAFF_TOKEN = "whistlestop-staff-2025";
+
+async function adminFetch(path, options = {}) {
+    const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            "X-Staff-Token": STAFF_TOKEN,
+            ...(options.headers || {})
+        }
+    });
+
+    if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`${response.status} ${body}`);
+    }
+
+    return response.status === 204 ? null : response.json();
+}
 
 let products = JSON.parse(localStorage.getItem(KEY_MENU)) || [
     { name: 'Americano', p1: 1.5, p2: 2.0, stock: true },
@@ -12,13 +32,13 @@ let products = JSON.parse(localStorage.getItem(KEY_MENU)) || [
     { name: 'Mocha', p1: 2.5, p2: 3.0, stock: true }
 ];
 
+
 function renderAll() {
     const currentStation = document.getElementById('stationFilter').value;
 
-   
-    fetch("http://localhost:8080/api/orders/dashboard")
-    .then(res => res.json())
-    .then(orders => {
+
+    adminFetch("/api/orders/dashboard")
+        .then(orders => {
 
         document.getElementById('list-new').innerHTML = '';
         document.getElementById('list-prep').innerHTML = '';
@@ -27,36 +47,60 @@ function renderAll() {
         let counts = { c1:0, c2:0, c3:0, rev:0, done:0 };
 
         orders = orders.map(ord => {
+            const totalQuantity = (ord.items || []).reduce((sum, item) => {
+                return sum + Number(item.quantity || item.q || 0);
+            }, 0);
+
             return {
                 ...ord,
-                name: ord.items?.[0]?.name || "Coffee Order",
-                q: ord.items?.reduce((a, b) => a + b.q, 0) || 1,
-                p: ord.total / (ord.items?.reduce((a, b) => a + b.q, 0) || 1) || 0,
-                pTime: ord.time || "ASAP",
-                status: ord.status === "PENDING" ? "new" : ord.status === "IN_PROGRESS" ? "prepping" : ord.status
+                q: totalQuantity || 1,
+                totalPrice: calculateOrderTotal(ord),
+                pTime: ord.pickupTime || ord.time || "ASAP",
+                displayStatus:
+                    ord.status === "PENDING" ? "new" :
+                        ord.status === "IN_PROGRESS" ? "prepping" :
+                            ord.status
             };
         });
-
         orders.forEach((ord, idx) => {
-            if(ord.station && ord.station !== currentStation) return;
+            if(ord.station && ord.station !== currentStation) {
+                return;
+            }
+
 
             const card = `
-                <div class="order-card ${ord.status === 'READY' ? 'ready' : ''}">
-                    <div style="display:flex; justify-content:space-between;">
-                        <b>#${ord.id}</b>
-                        <span style="font-size:12px; color:#007aff;">${ord.pTime || 'ASAP'}</span>
-                    </div>
-                    <div style="margin:10px 0; font-size:14px;">${ord.name} x${ord.q}</div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:700;">£${(ord.p * ord.q).toFixed(2)}</span>
-                        <div>${renderBtns(ord, ord.id)}</div>
-                    </div>
-                </div>
-            `;
+    <div class="order-card ${ord.status === 'READY' ? 'ready' : ''}">
+        <div style="display:flex; justify-content:space-between;">
+            <b>#${ord.id}</b>
+            <span style="font-size:12px; color:#007aff;">
+                ${ord.pickupTime ? new Date(ord.pickupTime).toLocaleTimeString('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'ASAP'}
+            </span>
+        </div>
 
-            if(!ord.status || ord.status === 'new') { document.getElementById('list-new').innerHTML += card; counts.c1++; }
-            else if(ord.status === 'prepping') { document.getElementById('list-prep').innerHTML += card; counts.c2++; }
-            else if(ord.status === 'READY') { document.getElementById('list-ready').innerHTML += card; counts.c3++; }
+        <div style="margin-top:10px;">
+            ${renderOrderItems(ord.items)}
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center;margin-top:10px;">
+            <span style="font-weight:700;">£${Number(ord.totalCost || 0).toFixed(2)}</span>
+            <div>${renderBtns(ord, ord.id)}</div>
+        </div>
+    </div>
+`;
+
+            if (!ord.displayStatus || ord.displayStatus === 'new') {
+                document.getElementById('list-new').innerHTML += card;
+                counts.c1++;
+            } else if (ord.displayStatus === 'prepping' || ord.status === 'ACCEPTED') {
+                document.getElementById('list-prep').innerHTML += card;
+                counts.c2++;
+            } else if (ord.displayStatus === 'READY') {
+                document.getElementById('list-ready').innerHTML += card;
+                counts.c3++;
+            }
             else if(ord.status === 'COLLECTED') {
                 counts.done++;
                 counts.rev += (ord.total || (ord.p * ord.q));
@@ -69,27 +113,88 @@ function renderAll() {
         document.getElementById('num2').innerText = counts.c2;
         document.getElementById('num3').innerText = counts.c3;
 
-        renderMenuTable();
         renderShopStats();
-    });
+        })
+        .catch(error => {
+            console.error("Could not load dashboard orders:", error);
+            document.getElementById('list-new').innerHTML =
+                '<div style="padding:12px;color:#777;">Could not load orders.</div>';
+        });
+}
+
+function renderOrderItems(items) {
+    if (!items || items.length === 0) {
+        return '<div style="font-size:12px;color:#777;">No items</div>';
+    }
+
+    return items.map(item => {
+        const name = item.menuItem?.name || item.name || 'Item';
+        const quantity = item.quantity || item.q || 1;
+        const size = item.size || '';
+        const customisation = item.customisationNote || '';
+        const lineTotal = Number(
+            item.lineTotal || (item.unitPrice * quantity) || item.price || 0
+        ).toFixed(2);
+
+        return `
+            <div style="margin:8px 0;padding:8px;border-radius:8px;background:#f8f8f8;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;">
+                    <span><b>${name}</b> ×${quantity}</span>
+                    <span>£${lineTotal}</span>
+                </div>
+
+                <div style="font-size:11px;color:#777;margin-top:3px;">
+                    ${size}
+                </div>
+
+                ${customisation ? `
+                    <div style="font-size:11px;color:#555;margin-top:4px;">
+                        ${customisation}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function calculateOrderTotal(order) {
+    if (order.totalCost != null) {
+        return Number(order.totalCost);
+    }
+
+    if (order.total != null) {
+        return Number(order.total);
+    }
+
+    return (order.items || []).reduce((sum, item) => {
+        const quantity = item.quantity || item.q || 1;
+        const lineTotal = item.lineTotal || (item.unitPrice * quantity) || item.price || 0;
+        return sum + Number(lineTotal);
+    }, 0);
 }
 
 function renderBtns(ord, orderId) {
-    if(!ord.status || ord.status === 'new') {
+    if (ord.status === 'PENDING' || ord.displayStatus === 'new') {
         return `<button onclick="updateOrderStatus(${orderId},'ACCEPTED')" style="background:#000; color:#fff; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Accept</button>`;
     }
-    if(ord.status === 'prepping') {
+
+    if (ord.status === 'ACCEPTED') {
+        return `<button onclick="updateOrderStatus(${orderId},'IN_PROGRESS')" style="background:#000; color:#fff; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Start</button>`;
+    }
+
+    if (ord.status === 'IN_PROGRESS' || ord.displayStatus === 'prepping') {
         return `<button onclick="updateOrderStatus(${orderId},'READY')" style="background:#000; color:#fff; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Finish</button>`;
     }
-    if(ord.status === 'READY') {
+
+    if (ord.status === 'READY') {
         return `<button onclick="updateOrderStatus(${orderId},'COLLECTED')" style="background:#34c759; color:#fff; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Collected</button>`;
     }
+
     return '';
 }
-
 // 后端状态更新（已改好）
 function updateOrderStatus(orderId, status) {
-    fetch(`http://localhost:8080/api/orders/${orderId}/status?status=${status}`, {
+    adminFetch(`/api/orders/${orderId}/status?status=${status}`, {
         method: "PATCH"
     }).then(() => {
         renderAll();
@@ -97,66 +202,124 @@ function updateOrderStatus(orderId, status) {
 }
 
 function renderShopStats() {
-    fetch("http://localhost:8080/api/orders/dashboard")
-    .then(res => res.json())
-    .then(ords => {
-        const currentStation = document.getElementById('stationFilter').value;
-        ords = ords.filter(ord => !ord.station || ord.station === currentStation);
+    adminFetch("/api/orders/dashboard")
+        .then(ords => {
+            const currentStation = document.getElementById('stationFilter').value;
+            ords = ords.filter(ord => !ord.station || ord.station === currentStation);
 
-        const pendingCount = ords.filter(o => o.status === "PENDING" || o.status === "new").length;
-        const inProgressCount = ords.filter(o => o.status === "IN_PROGRESS" || o.status === "prepping").length;
+            const pendingCount = ords.filter(o => o.status === "PENDING").length;
+            const inProgressCount = ords.filter(o =>
+                o.status === "ACCEPTED" || o.status === "IN_PROGRESS"
+            ).length;
+            const readyCount = ords.filter(o => o.status === "READY").length;
 
-        document.getElementById('count-new').innerText = pendingCount;
-        document.getElementById('count-prep').innerText = inProgressCount;
-        document.getElementById('count-done').innerText = '0';
-        document.getElementById('total-rev').innerText = '0.00';
-    });
+            document.getElementById('count-new').innerText = pendingCount;
+            document.getElementById('count-prep').innerText = inProgressCount;
+            document.getElementById('num1').innerText = pendingCount;
+            document.getElementById('num2').innerText = inProgressCount;
+            document.getElementById('num3').innerText = readyCount;
+            document.getElementById('count-done').innerText = '0';
+            document.getElementById('total-rev').innerText = '0.00';
+        })
+        .catch(error => {
+            console.error("Could not load shop stats:", error);
+        });
 }
 
 function renderArchive() {
     const currentStation = document.getElementById('stationFilter').value;
-    // 从后端获取历史订单
-    fetch("http://localhost:8080/api/orders/archive")
-    .then(res => res.json())
-    .then(history => {
-        const archiveBody = document.getElementById('archive-body');
-        if (!archiveBody) return;
-        archiveBody.innerHTML = '';
 
-        const filteredHistory = history.filter(ord => ord.station === currentStation);
-        if (filteredHistory.length === 0) {
-            archiveBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#999;">No order history</td></tr>`;
-            return;
-        }
+    adminFetch("/api/orders/archive")
+        .then(history => {
+            const archiveBody = document.getElementById('archive-body');
+            if (!archiveBody) return;
 
-        filteredHistory.forEach((ord, idx) => {
-            const productNames = ord.items?.map(item => item.name).join(', ') || ord.name || 'Coffee';
-            const quantity = ord.items?.reduce((a, b) => a + b.q, 0) || ord.q || 1;
-            const totalPrice = ord.total || (ord.p * quantity) || 0;
-            const time = ord.completedTime || ord.time || 'Unknown';
+            archiveBody.innerHTML = '';
 
-            archiveBody.innerHTML += `
-                <tr>
-                    <td>#${ord.id}</td>
-                    <td>${productNames}</td>
-                    <td>${quantity}</td>
-                    <td>£${totalPrice.toFixed(2)}</td>
-                    <td>${time}</td>
-                    <td>${ord.station}</td>
-                </tr>
-            `;
+            const filteredHistory = history.filter(ord => {
+                return !ord.station || ord.station === currentStation;
+            });
+
+            if (filteredHistory.length === 0) {
+                archiveBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:20px; color:#999;">
+                            No order history
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filteredHistory.forEach(ord => {
+                const productNames = (ord.items || []).map(item => {
+                    const name = item.menuItem?.name || item.name || 'Coffee';
+                    const customisation = item.customisationNote
+                        ? ` (${item.customisationNote})`
+                        : '';
+                    return `${name}${customisation}`;
+                }).join(', ');
+
+                const quantity = (ord.items || []).reduce((sum, item) => {
+                    return sum + Number(item.quantity || item.q || 0);
+                }, 0);
+
+                const totalPrice = calculateOrderTotal(ord);
+
+                const time = ord.pickupTime
+                    ? new Date(ord.pickupTime).toLocaleString('en-GB')
+                    : 'Unknown';
+
+                archiveBody.innerHTML += `
+                    <tr>
+                        <td>#${ord.id}</td>
+                        <td>${productNames}</td>
+                        <td>${quantity}</td>
+                        <td>£${totalPrice.toFixed(2)}</td>
+                        <td>${time}</td>
+                        <td>${ord.station || 'Cramlington Station'}</td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(error => {
+            console.error("Could not load archive:", error);
+
+            const archiveBody = document.getElementById('archive-body');
+            if (archiveBody) {
+                archiveBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:20px; color:#999;">
+                            Could not load order history
+                        </td>
+                    </tr>
+                `;
+            }
         });
-    });
 }
 
 function renderMenuTable() {
-    if(!products || products.length === 0) return;
-    document.getElementById('p-body').innerHTML = products.map((p, i) => `
+    const tableBody = document.getElementById('p-body');
+
+    if (!tableBody) {
+        return;
+    }
+
+    if (!products || products.length === 0) {
+        tableBody.innerHTML = '';
+        return;
+    }
+
+    tableBody.innerHTML = products.map((p, i) => `
         <tr>
             <td><b>${p.name}</b></td>
             <td>£${p.p1.toFixed(2)}</td>
-            <td>${p.p2 ? '£'+p.p2.toFixed(2) : '-'}</td>
-            <td><span style="color:${p.stock?'#34c759':'#ff3b30'}">${p.stock?'In Stock':'Out of Stock'}</span></td>
+            <td>${p.p2 ? '£' + p.p2.toFixed(2) : '-'}</td>
+            <td>
+                <span style="color:${p.stock ? '#34c759' : '#ff3b30'}">
+                    ${p.stock ? 'In Stock' : 'Out of Stock'}
+                </span>
+            </td>
             <td>
                 <button onclick="toggleS(${i})" style="cursor:pointer;">Toggle Stock</button>
                 <button onclick="delP(${i})" style="color:red; cursor:pointer; margin-left:10px; border:none; background:none;">Delete</button>

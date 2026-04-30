@@ -2,13 +2,76 @@ const API_BASE = 'http://localhost:8080';
 const KEY_CUSTOMER_ORDERS = 'ws_customer_order_ids';
 
 const fallbackMenu = [
-    { id: 1, name: 'Americano', regularPrice: 1.50, largePrice: 2.00, img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop' },
-    { id: 2, name: 'Americano with milk', regularPrice: 2.00, largePrice: 2.50, img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop' },
-    { id: 3, name: 'Latte', regularPrice: 2.50, largePrice: 3.00, img: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=300&h=200&fit=crop' },
-    { id: 4, name: 'Cappuccino', regularPrice: 2.50, largePrice: 3.00, img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&h=200&fit=crop' },
-    { id: 5, name: 'Hot Chocolate', regularPrice: 2.00, largePrice: 2.50, img: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=300&h=200&fit=crop' },
-    { id: 6, name: 'Mocha', regularPrice: 2.50, largePrice: 3.00, img: 'https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=300&h=200&fit=crop' },
-    { id: 7, name: 'Mineral Water', regularPrice: 1.00, largePrice: null, img: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=300&h=200&fit=crop' }
+    {
+        id: 1,
+        name: 'Americano',
+        regularPrice: 1.50,
+        largePrice: 2.00,
+        supportsMilk: false,
+        supportsSugar: true,
+        supportsLarge: true,
+        img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop'
+    },
+    {
+        id: 2,
+        name: 'Americano with milk',
+        regularPrice: 2.00,
+        largePrice: 2.50,
+        supportsMilk: true,
+        supportsSugar: true,
+        supportsLarge: true,
+        img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop'
+    },
+    {
+        id: 3,
+        name: 'Latte',
+        regularPrice: 2.50,
+        largePrice: 3.00,
+        supportsMilk: true,
+        supportsSugar: true,
+        supportsLarge: true,
+        img: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=300&h=200&fit=crop'
+    },
+    {
+        id: 4,
+        name: 'Cappuccino',
+        regularPrice: 2.50,
+        largePrice: 3.00,
+        supportsMilk: true,
+        supportsSugar: true,
+        supportsLarge: true,
+        img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&h=200&fit=crop'
+    },
+    {
+        id: 5,
+        name: 'Hot Chocolate',
+        regularPrice: 2.00,
+        largePrice: 2.50,
+        supportsMilk: true,
+        supportsSugar: true,
+        supportsLarge: true,
+        img: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=300&h=200&fit=crop'
+    },
+    {
+        id: 6,
+        name: 'Mocha',
+        regularPrice: 2.50,
+        largePrice: 3.00,
+        supportsMilk: true,
+        supportsSugar: true,
+        supportsLarge: true,
+        img: 'https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=300&h=200&fit=crop'
+    },
+    {
+        id: 7,
+        name: 'Mineral Water',
+        regularPrice: 1.00,
+        largePrice: null,
+        supportsMilk: false,
+        supportsSugar: false,
+        supportsLarge: false,
+        img: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=300&h=200&fit=crop'
+    }
 ];
 
 let menu = [...fallbackMenu];
@@ -18,6 +81,7 @@ let state = {
     q: 1,
     bp: 0,
     selectedSize: 'REGULAR',
+    paymentMethod: 'CARD',
     pendingOrders: [],
     history: [],
     isLogin: false
@@ -58,13 +122,22 @@ function updateTime() {
 async function loadMenu() {
     try {
         const backendMenu = await apiFetch('/api/menu');
-        menu = backendMenu.map(item => ({
-            id: item.id,
-            name: item.name,
-            regularPrice: Number(item.regularPrice),
-            largePrice: item.largePrice == null ? null : Number(item.largePrice),
-            img: imageForItem(item.name)
-        }));
+        menu = backendMenu.map(item => {
+            const fallback = fallbackMenu.find(i =>
+                i.name.toLowerCase() === String(item.name).toLowerCase()
+            );
+
+            return {
+                id: item.id,
+                name: item.name,
+                regularPrice: Number(item.regularPrice),
+                largePrice: item.largePrice == null ? null : Number(item.largePrice),
+                supportsMilk: fallback?.supportsMilk ?? true,
+                supportsSugar: fallback?.supportsSugar ?? true,
+                supportsLarge: fallback?.supportsLarge ?? item.largePrice != null,
+                img: imageForItem(item.name)
+            };
+        });
     } catch (error) {
         console.warn('Using fallback menu because backend menu failed:', error.message);
         menu = [...fallbackMenu];
@@ -103,7 +176,6 @@ function navTo(id) {
         refreshCustomerOrders();
     }
 }
-
 function openDrawer(menuItemId) {
     state.curr = menu.find(item => item.id === menuItemId);
     if (!state.curr) return;
@@ -112,42 +184,60 @@ function openDrawer(menuItemId) {
     state.bp = Number(state.curr.regularPrice);
     state.selectedSize = 'REGULAR';
 
+    const milkOptionsHtml = state.curr.supportsMilk ? `
+        <p class="config-label">Milk options</p>
+        <div class="opt-grid" id="milk-options">
+          <button class="opt-btn active" onclick="setOpt(this,'milk')">Whole Milk</button>
+          <button class="opt-btn" onclick="setOpt(this,'milk')">Oat Milk</button>
+          <button class="opt-btn" onclick="setOpt(this,'milk')">Skimmed Milk</button>
+          <button class="opt-btn" onclick="setOpt(this,'milk')">Coconut Milk</button>
+        </div>
+    ` : '';
+
+    const sugarOptionsHtml = state.curr.supportsSugar ? `
+        <p class="config-label">Sugar level</p>
+        <div class="opt-grid" id="sugar-options">
+          <button class="opt-btn active" onclick="setOpt(this,'sugar')">No Sugar</button>
+          <button class="opt-btn" onclick="setOpt(this,'sugar')">30% Sugar</button>
+          <button class="opt-btn" onclick="setOpt(this,'sugar')">50% Sugar</button>
+          <button class="opt-btn" onclick="setOpt(this,'sugar')">100% Sugar</button>
+        </div>
+    ` : '';
+
+    const sizeOptionsHtml = `
+        <p class="config-label">Cup size</p>
+        <div class="opt-grid" id="size-box">
+          <button class="opt-btn active" onclick="selSize(this, ${Number(state.curr.regularPrice)}, 'REGULAR')">Regular</button>
+          ${state.curr.supportsLarge && state.curr.largePrice
+        ? `<button class="opt-btn" onclick="selSize(this, ${Number(state.curr.largePrice)}, 'LARGE')">Large</button>`
+        : ''}
+        </div>
+    `;
+
     const drawer = document.getElementById('drawer');
     drawer.innerHTML = `
     <div style="padding:20px;display:flex;flex-wrap:wrap;gap:20px;">
       <div style="width:45%;min-width:150px;max-width:220px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;flex-shrink:0;">
         <img src="${state.curr.img}" style="width:100%;height:100%;object-fit:cover;">
       </div>
+
       <div style="flex:1;min-width:250px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h2 id="d-name" style="margin:0;font-size:22px;">${state.curr.name}</h2>
           <span id="d-price" style="font-size:20px;font-weight:900;">£${state.bp.toFixed(2)}</span>
         </div>
-        <p class="config-label">Milk options</p>
-        <div class="opt-grid">
-          <button class="opt-btn active" onclick="setOpt(this,'milk')">Whole Milk</button>
-          <button class="opt-btn" onclick="setOpt(this,'milk')">Oat Milk</button>
-          <button class="opt-btn" onclick="setOpt(this,'milk')">Skimmed Milk</button>
-          <button class="opt-btn" onclick="setOpt(this,'milk')">Coconut Milk</button>
-        </div>
-        <p class="config-label">Sugar level</p>
-        <div class="opt-grid">
-          <button class="opt-btn active" onclick="setOpt(this,'sugar')">No Sugar</button>
-          <button class="opt-btn" onclick="setOpt(this,'sugar')">30% Sugar</button>
-          <button class="opt-btn" onclick="setOpt(this,'sugar')">50% Sugar</button>
-          <button class="opt-btn" onclick="setOpt(this,'sugar')">100% Sugar</button>
-        </div>
-        <p class="config-label">Cup size</p>
-        <div class="opt-grid" id="size-box">
-          <button class="opt-btn active" onclick="selSize(this, ${Number(state.curr.regularPrice)}, 'REGULAR')">Regular</button>
-          ${state.curr.largePrice ? `<button class="opt-btn" onclick="selSize(this, ${Number(state.curr.largePrice)}, 'LARGE')">Large</button>` : ''}
-        </div>
+
+        ${milkOptionsHtml}
+        ${sugarOptionsHtml}
+        ${sizeOptionsHtml}
       </div>
+
       <div style="width:100%;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:15px;border-top:1px solid #eee;">
           <span style="font-weight:800;">Pickup time</span>
           <input type="time" id="p-time" style="border:1px solid #eee;padding:6px;border-radius:8px;">
         </div>
+
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;">
           <span style="font-weight:800;">Quantity</span>
           <div style="display:flex;gap:15px;align-items:center;">
@@ -156,6 +246,7 @@ function openDrawer(menuItemId) {
             <button onclick="qty(1)" style="width:32px;height:32px;border:2px solid #000;border-radius:50%;background:#fff;">+</button>
           </div>
         </div>
+
         <button class="btn-black" onclick="addBag()" style="margin-top:20px;width:100%;">Add to bag</button>
       </div>
     </div>`;
@@ -197,25 +288,36 @@ function updatePrice() {
     if (dPrice) dPrice.innerText = `£${(state.bp * state.q).toFixed(2)}`;
 }
 
-function addBag() {
-    const pickTime = document.getElementById('p-time')?.value;
-    if (!pickTime) {
-        alert('Please choose a pickup time.');
-        return;
+    function addBag() {
+        const pickTime = document.getElementById('p-time')?.value;
+
+        if (!pickTime) {
+            alert('Please choose a pickup time.');
+            return;
+        }
+
+        const selectedMilk = state.curr.supportsMilk
+            ? document.querySelector('#milk-options .opt-btn.active')?.innerText
+            : null;
+
+        const selectedSugar = state.curr.supportsSugar
+            ? document.querySelector('#sugar-options .opt-btn.active')?.innerText
+            : null;
+
+        state.bag.push({
+            menuItemId: state.curr.id,
+            name: state.curr.name,
+            p: state.bp,
+            q: state.q,
+            size: state.selectedSize,
+            milk: selectedMilk,
+            sugar: selectedSugar,
+            pickTime
+        });
+
+        updateBag();
+        closeDrawer();
     }
-
-    state.bag.push({
-        menuItemId: state.curr.id,
-        name: state.curr.name,
-        p: state.bp,
-        q: state.q,
-        size: state.selectedSize,
-        pickTime
-    });
-
-    updateBag();
-    closeDrawer();
-}
 
 function updateBag() {
     const payBar = document.getElementById('pay-bar');
@@ -260,8 +362,14 @@ function openCart() {
         <div style="display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid #eee;">
           <div style="flex:1;">
             <div style="font-weight:700;font-size:14px;">${item.name}</div>
-            <div style="font-size:12px;color:#888;">${item.size} | pickup ${item.pickTime}</div>
-            <div style="font-size:13px;font-weight:bold;margin-top:5px;">£${item.p.toFixed(2)}/item</div>
+<div style="font-size:12px;color:#888;">
+    ${[
+        item.size,
+        item.milk,
+        item.sugar,
+        `pickup ${item.pickTime}`
+    ].filter(Boolean).join(' | ')}
+</div>            <div style="font-size:13px;font-weight:bold;margin-top:5px;">£${item.p.toFixed(2)}/item</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <button onclick="updateCartQty(${idx}, -1)">-</button>
@@ -271,17 +379,165 @@ function openCart() {
           </div>
         </div>`).join('')}
       <div style="margin-top:20px;padding-top:20px;border-top:2px solid #000;">
-        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:18px;margin-bottom:15px;">
-          <span>Total</span><span>£${totalPrice}</span>
-        </div>
-        <button onclick="checkout(); closeCart();" class="btn-black" style="margin-bottom:10px;">Checkout</button>
-      </div>
+  <div style="display:flex;justify-content:space-between;font-weight:800;font-size:18px;margin-bottom:15px;">
+    <span>Total</span><span>£${totalPrice}</span>
+  </div>
+
+<button 
+    onclick="openCheckoutModal()" 
+    class="btn-black" 
+    style="margin-bottom:10px;">Checkout</button></div>
     </div>`;
     document.body.appendChild(cartModal);
 }
 
 function closeCart() {
     document.getElementById('cart-modal')?.remove();
+}
+
+function openCheckoutModal() {
+    if (state.bag.length === 0) {
+        alert('Your cart is empty.');
+        return;
+    }
+
+    closeCart();
+
+    const existing = document.getElementById('checkout-modal');
+    if (existing) existing.remove();
+
+    const totalPrice = state.bag.reduce((sum, item) => sum + item.p * item.q, 0).toFixed(2);
+
+    const checkoutModal = document.createElement('div');
+    checkoutModal.id = 'checkout-modal';
+    checkoutModal.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+
+    checkoutModal.innerHTML = `
+        <div style="
+            background: #fff;
+            width: 90%;
+            max-width: 480px;
+            border-radius: 24px;
+            padding: 26px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+        ">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <div>
+                    <h2 style="margin:0;font-size:22px;">Checkout</h2>
+                    <p style="margin:6px 0 0;color:#777;font-size:13px;">Confirm your details and payment method.</p>
+                </div>
+                <button onclick="closeCheckoutModal()" style="
+                    background:none;
+                    border:none;
+                    font-size:24px;
+                    cursor:pointer;
+                ">×</button>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label class="config-label">Customer name</label>
+                <input
+                    id="checkout-name"
+                    type="text"
+                    placeholder="Enter your name"
+                    style="
+                        width:100%;
+                        padding:12px;
+                        border:1px solid #eee;
+                        border-radius:12px;
+                        font-size:14px;
+                        outline:none;
+                    "
+                >
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label class="config-label">Email address</label>
+                <input
+                    id="checkout-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    style="
+                        width:100%;
+                        padding:12px;
+                        border:1px solid #eee;
+                        border-radius:12px;
+                        font-size:14px;
+                        outline:none;
+                    "
+                >
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label class="config-label">Payment method</label>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <button
+                        id="pay-card"
+                        onclick="setPaymentMethod('CARD')"
+                        class="payment-btn active"
+                        type="button">
+                        Card
+                    </button>
+
+                    <button
+                        id="pay-cash"
+                        onclick="setPaymentMethod('CASH')"
+                        class="payment-btn"
+                        type="button">
+                        Cash
+                    </button>
+                </div>
+            </div>
+
+            <div style="
+                background:#f8f8f8;
+                border-radius:16px;
+                padding:14px;
+                margin-bottom:20px;
+            ">
+                <div style="display:flex;justify-content:space-between;font-weight:800;font-size:18px;">
+                    <span>Total</span>
+                    <span>£${totalPrice}</span>
+                </div>
+                <div style="font-size:12px;color:#777;margin-top:6px;">
+                    ${state.bag.length} item${state.bag.length === 1 ? '' : 's'} in your order
+                </div>
+            </div>
+
+            <button onclick="checkout()" class="btn-black" style="width:100%;margin-bottom:10px;">
+                Place order
+            </button>
+
+            <button onclick="closeCheckoutModal()" class="btn-ghost" style="
+                width:100%;
+                padding:12px;
+                border-radius:14px;
+                border:1px solid #eee;
+                background:#fff;
+                font-weight:700;
+                cursor:pointer;
+            ">
+                Cancel
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(checkoutModal);
+}
+
+function closeCheckoutModal() {
+    document.getElementById('checkout-modal')?.remove();
 }
 
 function updateCartQty(idx, val) {
@@ -318,18 +574,32 @@ async function checkout() {
         return;
     }
 
-    const customerName = prompt('Please enter your name:', 'Customer');
-    const customerEmail = prompt('Please enter your email:', 'customer@test.com');
-    if (!customerName || !customerEmail) return;
+    const customerName = document.getElementById('checkout-name')?.value.trim();
+    const customerEmail = document.getElementById('checkout-email')?.value.trim();
+
+    if (!customerName) {
+        alert('Please enter your name.');
+        return;
+    }
+
+    if (!customerEmail) {
+        alert('Please enter your email address.');
+        return;
+    }
 
     const orderPayload = {
         customerName,
         customerEmail,
         pickupTime: buildPickupDateTime(state.bag[0].pickTime),
+        paymentMethod: state.paymentMethod,
         items: state.bag.map(item => ({
             menuItemId: item.menuItemId,
             size: item.size,
-            quantity: item.q
+            quantity: item.q,
+            customisationNote: [
+                item.milk ? `Milk: ${item.milk}` : null,
+                item.sugar ? `Sugar: ${item.sugar}` : null
+            ].filter(Boolean).join('; ') || null
         }))
     };
 
@@ -346,9 +616,14 @@ async function checkout() {
 
         state.pendingOrders.push(savedOrder);
         state.bag = [];
+        state.paymentMethod = 'CARD';
+
         updateBag();
+        closeCheckoutModal();
+
         alert(`Order placed successfully. Order #${savedOrder.id}`);
         navTo('pg-record');
+
     } catch (error) {
         console.error(error);
         alert(`Could not place order: ${error.message}`);
@@ -384,6 +659,22 @@ async function refreshCustomerOrders() {
     state.history = orders.filter(order => ['COLLECTED', 'CANCELLED'].includes(order.status));
     renderPendingOrders();
     renderHistory();
+}
+
+function setPaymentMethod(method) {
+    state.paymentMethod = method;
+
+    document.querySelectorAll('.payment-btn').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    if (method === 'CARD') {
+        document.getElementById('pay-card')?.classList.add('active');
+    }
+
+    if (method === 'CASH') {
+        document.getElementById('pay-cash')?.classList.add('active');
+    }
 }
 
 function loadOrderData() {
