@@ -3,49 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Whistlestop Coffee Hut</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="CSS/customer.css">
 </head>
 <body>
+
 <div class="header" style="
-        background: linear-gradient(135deg, #FFF0E1, #FFE4C4);
-        border-bottom: 1px solid #FFD9B8;
+        background: linear-gradient(135deg, #fff1e4, #FFE4C4);
+        border-bottom: 1px solid #ffecdb;
         position: relative;
         z-index: 1;
     ">
-    <div id="train-info" style="padding:10px 20px; background:white; font-size:12px;"></div>
-    <div class="loc-select">
+
+    <div class="header-left">
+       <div class="loc-select">
         <select id="station">
             <option>Cramlington Station</option>
             <option>Newcastle Station</option>
             <option>Morpeth Station</option>
         </select>
         <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: #ccc;"></i>
-    </div>
-    <div id="timeBox" class="biz-hours"></div>
+       </div>
+        <div id="train-info" style="padding:10px 20px; background:white; font-size:12px;"></div>
+   </div>
+        <div id="timeBox" class="biz-hours"></div>
 </div>
 
-<div class="container"style="padding: 0 130px;">
-    <div id="pg-home" class="page">
-        <div class="hero-section"style="
-          background-image: url('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1000');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          background-color: rgba(255, 235, 205, 0.6);
-          background-blend-mode: overlay;">
-            <div class="hero-bg-animation"></div>
-            <div class="sketch-canvas">
-                <i class="fa-solid fa-mug-hot" style="font-size: 50px;"></i>
-            </div>
-            <div class="new-label">JUST OPENED</div>
-            <h1>Whistlestop Coffeehut</h1>
-        </div>
 
-        <button class="btn-ghost" onclick="navTo('pg-order')">ORDER NOW</button>
-    </div>
-
+<div class="container"style="padding: 0 0px;">
     <div id="pg-order" class="page active">
         <div id="menu-items"></div>
     </div>
@@ -88,9 +75,24 @@
     <div style="font-size:14px; font-weight:800;">Bag · <span id="cart-q">0</span> Cups</div>
     <div onclick="checkout()" style="cursor:pointer; font-weight:900;">Checkout £<span id="cart-p">0.00</span> <i class="fa-solid fa-arrow-right"></i></div>
 </div>
+<div style="position:fixed; 
+inset:0; 
+background:rgba(0,0,0,0.4); 
+display:none; z-index:100;" 
+id="mask" onclick="closeDrawer()">
+</div>
+   <div style="position:fixed; 
+     bottom:-100%; left:0; width:100%;  
+background:rgba(255,255,255,0.97); 
+backdrop-filter:blur(12px); 
+border-radius:30px 30px 0 0; 
+padding:35px 25px; 
+z-index:101; 
+transition:0.4s cubic-bezier(0,1,0,1); 
+overflow-y:auto;
+ -webkit-overflow-scrolling:touch;" 
+      id="drawer">
 
-<div style="position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; z-index:100;" id="mask" onclick="closeDrawer()"></div>
-<div style="position:fixed; bottom:-100%; left:0; width:100%; background:#fff; border-radius:30px 30px 0 0; padding:35px 25px; z-index:101; transition:0.4s cubic-bezier(0,1,0,1);" id="drawer">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2 id="d-name" style="margin:0; font-size:24px;">Coffee</h2>
         <span id="d-price" style="font-size:22px; font-weight:900;">£0.00</span>
@@ -102,6 +104,7 @@
         <button class="opt-btn" onclick="setOpt(this,'milk')">Oat Milk</button>
         <button class="opt-btn" onclick="setOpt(this,'milk')">Skimmed Milk</button>
         <button class="opt-btn" onclick="setOpt(this,'milk')">Coconut Milk</button>
+        <button class="opt-btn" onclick="setOpt(this,'milk')">No Milk</button>
     </div>
 
     <div class="config-group">
@@ -124,10 +127,14 @@
         <span style="font-weight:800; font-size:14px;">Arrival Time</span>
         <input type="time" id="p-time" style="border:1px solid #eee; padding:8px; border-radius:10px; font-weight:800;">
     </div>
+
+
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
         <span style="font-weight:800; font-size:14px;">Quantity</span>
         <div style="display:flex; align-items:center; gap:20px;">
-            <button onclick="qty(-1)" style="width:36px; height:36px; border:2px solid #000; border-radius:50%; background:none; font-weight:900;">-</button>
+            <button onclick="qty(-1)" style="width:36px; height:36px; border:2px solid #000; border-radius:50%; background:none; font-weight:900;">-
+
+            </button>
             <span id="q-val" style="font-size:20px; font-weight:900;">1</span>
             <button onclick="qty(1)" style="width:36px; height:36px; border:2px solid #000; border-radius:50%; background:none; font-weight:900;">+</button>
         </div>
@@ -136,8 +143,7 @@
     <button class="btn-black" onclick="addBag()" style="margin-top:35px;">ADD TO BAG</button>
 </div>
 <div class="nav-bar">
-    <div class="nav-item" onclick="navTo('pg-home')"><i class="fa-solid fa-house-chimney"></i>Home Page</div>
-    <div class="nav-item active" onclick="navTo('pg-order')"><i class="fa-solid fa-mug-hot"></i>Order</div>
+    <div class="nav-item active" onclick="navTo('pg-order')"><i class="fa-solid fa-mug-hot"></i>HomePage</div>
     <div class="nav-item" onclick="navTo('pg-record')"><i class="fa-solid fa-id-card-clip"></i>Me</div>
 </div>
 

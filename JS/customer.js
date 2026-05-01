@@ -191,6 +191,7 @@ function openDrawer(menuItemId) {
           <button class="opt-btn" onclick="setOpt(this,'milk')">Oat Milk</button>
           <button class="opt-btn" onclick="setOpt(this,'milk')">Skimmed Milk</button>
           <button class="opt-btn" onclick="setOpt(this,'milk')">Coconut Milk</button>
+          <button class="opt-btn" onclick="setOpt(this,'milk')">No Milk</button>
         </div>
     ` : '';
 
@@ -237,6 +238,15 @@ function openDrawer(menuItemId) {
           <span style="font-weight:800;">Pickup time</span>
           <input type="time" id="p-time" style="border:1px solid #eee;padding:6px;border-radius:8px;">
         </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;">
+          <span style="font-weight:800;">Pickup Station</span>
+           <select id="pickup-station" style="border:1px solid #eee;padding:6px;border-radius:8px;">
+           <option value="Cramlington Station">Cramlington Station</option>
+         <option value="Newcastle Station">Newcastle Station</option>
+         <option value="Morpeth Station">Morpeth Station</option>
+         </select>
+         </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;">
           <span style="font-weight:800;">Quantity</span>
@@ -290,6 +300,7 @@ function updatePrice() {
 
 function addBag() {
     const pickTime = document.getElementById('p-time')?.value;
+    const station = document.getElementById('station').value;
 
     if (!pickTime) {
         alert('Please choose a pickup time.');
@@ -312,7 +323,8 @@ function addBag() {
         size: state.selectedSize,
         milk: selectedMilk,
         sugar: selectedSugar,
-        pickTime
+        pickTime,
+        station  
     });
 
     updateBag();
@@ -344,7 +356,6 @@ function openCart() {
         alert('Your cart is empty.');
         return;
     }
-
     const existing = document.getElementById('cart-modal');
     if (existing) existing.remove();
 
@@ -367,7 +378,7 @@ function openCart() {
         item.size,
         item.milk,
         item.sugar,
-        `pickup ${item.pickTime}`
+        `Station: ${item.station} | Pickup: ${item.pickTime}`
     ].filter(Boolean).join(' | ')}
 </div>            <div style="font-size:13px;font-weight:bold;margin-top:5px;">£${item.p.toFixed(2)}/item</div>
           </div>
@@ -591,6 +602,7 @@ async function checkout() {
         customerName,
         customerEmail,
         pickupTime: buildPickupDateTime(state.bag[0].pickTime),
+        station: state.bag[0].station,
         paymentMethod: state.paymentMethod,
         items: state.bag.map(item => ({
             menuItemId: item.menuItemId,
