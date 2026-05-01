@@ -151,30 +151,21 @@ function imageForItem(name) {
 }
 
 function renderMenu() {
-    const menuBox = document.getElementById('menu-items');
-    if (!menuBox) return;
-
-    menuBox.innerHTML = menu.map(item => `
-    <div class="menu-card" onclick="openDrawer(${item.id})">
-      <div class="menu-img-container">
-        <img src="${item.img}" alt="${item.name}" class="menu-img">
-      </div>
-      <div style="font-weight:700;font-size:14px;">${item.name}</div>
-      <div style="font-size:13px;font-weight:bold;">£${Number(item.regularPrice).toFixed(2)}</div>
-    </div>
-  `).join('');
+    document.getElementById('menu-items').innerHTML = menu.map(i => {
+        const isWater = i.name.includes("Mineral Water");
+        const action = isWater ? `addBagDirectly(${i.id})` : `openDrawer('${i.name}')`;
+        return `<div class="menu-card" onclick="${action}">
+            <div class="menu-img-container"><img src="${i.img}" class="menu-img"></div>
+            <div style="font-weight: 800; font-size: 14px;">${i.name}</div>
+            <div style="font-size: 14px; font-weight: 900; color: var(--gold); margin-top:4px;">£${i.p1.toFixed(2)}</div>
+        </div>`;
+    }).join('');
 }
 
-function navTo(id) {
-    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-    document.getElementById(id)?.classList.add('active');
-
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    if (window.event?.currentTarget) window.event.currentTarget.classList.add('active');
-
-    if (id === 'pg-record') {
-        refreshCustomerOrders();
-    }
+function addBagDirectly(id) {
+    const item = menu.find(m => m.id === id);
+    state.bag.push({ name: item.name, p: item.p1, q: 1, milk: "None", id: Date.now() });
+    updateBagUI(); alert("Water added to bag.");
 }
 function openDrawer(menuItemId) {
     state.curr = menu.find(item => item.id === menuItemId);
@@ -252,14 +243,12 @@ function openDrawer(menuItemId) {
     </div>`;
 
     document.getElementById('mask').style.display = 'block';
-    setTimeout(() => drawer.style.bottom = '0', 10);
-    updatePrice();
+    setTimeout(() => document.getElementById('drawer').style.bottom = '0', 10);
 }
 
 function closeDrawer() {
-    const drawer = document.getElementById('drawer');
-    drawer.style.bottom = '-100%';
-    setTimeout(() => document.getElementById('mask').style.display = 'none', 300);
+    document.getElementById('drawer').style.bottom = '-100%';
+    setTimeout(() => document.getElementById('mask').style.display='none', 300);
 }
 
 function selSize(el, price, size) {
@@ -321,22 +310,11 @@ function updatePrice() {
 
 function updateBag() {
     const payBar = document.getElementById('pay-bar');
-    if (!payBar) return;
-
-    if (state.bag.length === 0) {
-        payBar.style.display = 'none';
-        return;
-    }
-
-    payBar.style.display = 'flex';
-    const totalQty = state.bag.reduce((sum, item) => sum + item.q, 0);
-    const totalPrice = state.bag.reduce((sum, item) => sum + item.p * item.q, 0).toFixed(2);
-    payBar.innerHTML = `
-    <div style="flex:1;"><b>${totalQty} items</b> <span style="font-size:12px;color:#888;">£${totalPrice}</span></div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="openCart()" style="background:#fff;color:#000;border:1px solid #000;padding:8px 15px;border-radius:12px;font-weight:700;cursor:pointer;">View Cart</button>
-      <button onclick="checkout()" style="background:#fff;color:#000;border:1px solid #000;padding:8px 15px;border-radius:12px;font-weight:700;cursor:pointer;">Checkout</button>
-    </div>`;
+    if(state.bag.length > 0) {
+        payBar.style.display = 'block';
+        const total = state.bag.reduce((a,b)=>a+(b.p*b.q),0);
+        document.getElementById('cart-p-bar').innerText = total.toFixed(2);
+    } else { payBar.style.display = 'none'; }
 }
 
 function openCart() {
