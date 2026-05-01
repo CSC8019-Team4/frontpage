@@ -277,36 +277,36 @@ function updatePrice() {
     if (dPrice) dPrice.innerText = `£${(state.bp * state.q).toFixed(2)}`;
 }
 
-    function addBag() {
-        const pickTime = document.getElementById('p-time')?.value;
+function addBag() {
+    const pickTime = document.getElementById('p-time')?.value;
 
-        if (!pickTime) {
-            alert('Please choose a pickup time.');
-            return;
-        }
-
-        const selectedMilk = state.curr.supportsMilk
-            ? document.querySelector('#milk-options .opt-btn.active')?.innerText
-            : null;
-
-        const selectedSugar = state.curr.supportsSugar
-            ? document.querySelector('#sugar-options .opt-btn.active')?.innerText
-            : null;
-
-        state.bag.push({
-            menuItemId: state.curr.id,
-            name: state.curr.name,
-            p: state.bp,
-            q: state.q,
-            size: state.selectedSize,
-            milk: selectedMilk,
-            sugar: selectedSugar,
-            pickTime
-        });
-
-        updateBag();
-        closeDrawer();
+    if (!pickTime) {
+        alert('Please choose a pickup time.');
+        return;
     }
+
+    const selectedMilk = state.curr.supportsMilk
+        ? document.querySelector('#milk-options .opt-btn.active')?.innerText
+        : null;
+
+    const selectedSugar = state.curr.supportsSugar
+        ? document.querySelector('#sugar-options .opt-btn.active')?.innerText
+        : null;
+
+    state.bag.push({
+        menuItemId: state.curr.id,
+        name: state.curr.name,
+        p: state.bp,
+        q: state.q,
+        size: state.selectedSize,
+        milk: selectedMilk,
+        sugar: selectedSugar,
+        pickTime
+    });
+
+    updateBag();
+    closeDrawer();
+}
 
 function updateBag() {
     const payBar = document.getElementById('pay-bar');
