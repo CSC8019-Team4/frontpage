@@ -1,5 +1,17 @@
 const API_BASE = 'http://localhost:8080';
 const KEY_CUSTOMER_ORDERS = 'ws_customer_order_ids';
+const KEY_CUP_COUNT = 'ws_cup_count';
+const FREE_CUP_THRESHOLD = 10;
+
+function showInlineError(element, message) {
+    const err = document.createElement('div');
+    err.style.color = '#ff3b30';
+    err.style.fontSize = '12px';
+    err.style.margin = '4px 0';
+    err.textContent = message;
+    element.appendChild(err);
+    setTimeout(() => err.remove(), 2500);
+}
 
 const fallbackMenu = [
     {
@@ -80,12 +92,14 @@ let state = {
     curr: null,
     q: 1,
     bp: 0,
+    cupCount: 0,
     selectedSize: 'REGULAR',
     paymentMethod: 'CARD',
     pendingOrders: [],
     history: [],
     isLogin: false
 };
+
 
 async function apiFetch(path, options = {}) {
     const response = await fetch(`${API_BASE}${path}`, options);
@@ -151,16 +165,16 @@ function imageForItem(name) {
 }
 
 function renderMenu() {
+
     const menuBox = document.getElementById('menu-items');
     if (!menuBox) return;
-
     menuBox.innerHTML = menu.map(item => `
     <div class="menu-card" onclick="openDrawer(${item.id})">
       <div class="menu-img-container">
         <img src="${item.img}" alt="${item.name}" class="menu-img">
       </div>
-      <div style="font-weight:700;font-size:14px;">${item.name}</div>
-      <div style="font-size:13px;font-weight:bold;">£${Number(item.regularPrice).toFixed(2)}</div>
+      <div class="menu-name">${item.name}</div>
+      <div class="menu-price">£${Number(item.regularPrice).toFixed(2)}</div>
     </div>
   `).join('');
 }
@@ -176,14 +190,14 @@ function navTo(id) {
         refreshCustomerOrders();
     }
 }
+
+
 function openDrawer(menuItemId) {
     state.curr = menu.find(item => item.id === menuItemId);
     if (!state.curr) return;
-
     state.q = 1;
     state.bp = Number(state.curr.regularPrice);
     state.selectedSize = 'REGULAR';
-
     const milkOptionsHtml = state.curr.supportsMilk ? `
         <p class="config-label">Milk options</p>
         <div class="opt-grid" id="milk-options">
@@ -195,6 +209,7 @@ function openDrawer(menuItemId) {
         </div>
     ` : '';
 
+ 
     const sugarOptionsHtml = state.curr.supportsSugar ? `
         <p class="config-label">Sugar level</p>
         <div class="opt-grid" id="sugar-options">
@@ -204,6 +219,7 @@ function openDrawer(menuItemId) {
           <button class="opt-btn" onclick="setOpt(this,'sugar')">100% Sugar</button>
         </div>
     ` : '';
+
 
     const sizeOptionsHtml = `
         <p class="config-label">Cup size</p>
@@ -217,15 +233,15 @@ function openDrawer(menuItemId) {
 
     const drawer = document.getElementById('drawer');
     drawer.innerHTML = `
-    <div style="padding:20px;display:flex;flex-wrap:wrap;gap:20px;">
-      <div style="width:45%;min-width:150px;max-width:220px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;flex-shrink:0;">
-        <img src="${state.curr.img}" style="width:100%;height:100%;object-fit:cover;">
+    <div class="drawer-container">
+      <div class="drawer-img-box">
+        <img src="${state.curr.img}" class="drawer-img">
       </div>
 
-      <div style="flex:1;min-width:250px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h2 id="d-name" style="margin:0;font-size:22px;">${state.curr.name}</h2>
-          <span id="d-price" style="font-size:20px;font-weight:900;">£${state.bp.toFixed(2)}</span>
+      <div class="drawer-info">
+        <div class="drawer-header">
+          <h2 id="d-name" class="drawer-title">${state.curr.name}</h2>
+          <span id="d-price" class="drawer-price">£${state.bp.toFixed(2)}</span>
         </div>
 
         ${milkOptionsHtml}
@@ -233,36 +249,38 @@ function openDrawer(menuItemId) {
         ${sizeOptionsHtml}
       </div>
 
-      <div style="width:100%;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:15px;border-top:1px solid #eee;">
-          <span style="font-weight:800;">Pickup time</span>
-          <input type="time" id="p-time" style="border:1px solid #eee;padding:6px;border-radius:8px;">
+      <div class="drawer-actions">
+        <div class="drawer-row">
+          <span class="drawer-label">Pickup time</span>
+          <input type="time" id="p-time" class="drawer-input">
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;">
-          <span style="font-weight:800;">Pickup Station</span>
-           <select id="pickup-station" style="border:1px solid #eee;padding:6px;border-radius:8px;">
+        <div class="drawer-row">
+          <span class="drawer-label">Pickup Station</span>
+           <select id="pickup-station" class="drawer-input">
            <option value="Cramlington Station">Cramlington Station</option>
          <option value="Newcastle Station">Newcastle Station</option>
          <option value="Morpeth Station">Morpeth Station</option>
          </select>
          </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:15px;">
-          <span style="font-weight:800;">Quantity</span>
-          <div style="display:flex;gap:15px;align-items:center;">
-            <button onclick="qty(-1)" style="width:32px;height:32px;border:2px solid #000;border-radius:50%;background:#fff;">-</button>
-            <span id="q-val" style="font-size:18px;font-weight:900;">1</span>
-            <button onclick="qty(1)" style="width:32px;height:32px;border:2px solid #000;border-radius:50%;background:#fff;">+</button>
+        <div class="drawer-row">
+          <span class="drawer-label">Quantity</span>
+          <div class="drawer-qty">
+            <button onclick="qty(-1)" class="qty-btn">-</button>
+            <span id="q-val" class="qty-text">1</span>
+            <button onclick="qty(1)" class="qty-btn">+</button>
           </div>
         </div>
 
-        <button class="btn-black" onclick="addBag()" style="margin-top:20px;width:100%;">Add to bag</button>
+        <button class="btn-black" onclick="addBag()">Add to bag</button>
       </div>
     </div>`;
 
+    
     document.getElementById('mask').style.display = 'block';
     setTimeout(() => drawer.style.bottom = '0', 10);
+    
     updatePrice();
 }
 
@@ -300,7 +318,7 @@ function updatePrice() {
 
 function addBag() {
     const pickTime = document.getElementById('p-time')?.value;
-    const station = document.getElementById('station').value;
+    const station = document.getElementById('pickup-station').value;
 
     if (!pickTime) {
         alert('Please choose a pickup time.');
@@ -342,14 +360,18 @@ function updateBag() {
 
     payBar.style.display = 'flex';
     const totalQty = state.bag.reduce((sum, item) => sum + item.q, 0);
-    const totalPrice = state.bag.reduce((sum, item) => sum + item.p * item.q, 0).toFixed(2);
+    const totalPrice = calculateOrderTotal();
     payBar.innerHTML = `
-    <div style="flex:1;"><b>${totalQty} items</b> <span style="font-size:12px;color:#888;">£${totalPrice}</span></div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="openCart()" style="background:#fff;color:#000;border:1px solid #000;padding:8px 15px;border-radius:12px;font-weight:700;cursor:pointer;">View Cart</button>
-      <button onclick="checkout()" style="background:#fff;color:#000;border:1px solid #000;padding:8px 15px;border-radius:12px;font-weight:700;cursor:pointer;">Checkout</button>
+    <div class="pay-info">
+        <b>${totalQty} items</b> 
+        <span class="pay-sub">£${totalPrice}</span>
+    </div>
+    <div class="pay-buttons">
+      <button onclick="openCart()" class="pay-btn">View Cart</button>
+      <button onclick="checkout()" class="pay-btn">Checkout</button>
     </div>`;
 }
+
 
 function openCart() {
     if (state.bag.length === 0) {
@@ -359,140 +381,102 @@ function openCart() {
     const existing = document.getElementById('cart-modal');
     if (existing) existing.remove();
 
-    const totalPrice = state.bag.reduce((sum, item) => sum + item.p * item.q, 0).toFixed(2);
+    const totalPrice = calculateOrderTotal();
+
+ 
     const cartModal = document.createElement('div');
     cartModal.id = 'cart-modal';
-    cartModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;display:flex;justify-content:center;align-items:center;';
+    cartModal.className = 'modal-overlay';
+
     cartModal.innerHTML = `
-    <div style="background:#fff;width:90%;max-width:500px;border-radius:20px;padding:25px;max-height:80vh;overflow-y:auto;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-        <h3 style="margin:0;font-weight:800;">Your Cart</h3>
-        <button onclick="closeCart()" style="background:none;border:none;font-size:20px;cursor:pointer;">×</button>
+    <div class="cart-modal-content">
+      <div class="cart-header">
+        <h3 class="cart-title">Your Cart</h3>
+        <button onclick="closeCart()" class="cart-close">×</button>
       </div>
+      
       ${state.bag.map((item, idx) => `
-        <div style="display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid #eee;">
-          <div style="flex:1;">
-            <div style="font-weight:700;font-size:14px;">${item.name}</div>
-<div style="font-size:12px;color:#888;">
-    ${[
-        item.size,
-        item.milk,
-        item.sugar,
-        `Station: ${item.station} | Pickup: ${item.pickTime}`
-    ].filter(Boolean).join(' | ')}
-</div>            <div style="font-size:13px;font-weight:bold;margin-top:5px;">£${item.p.toFixed(2)}/item</div>
+        <div class="cart-item">
+          <div class="cart-item-left">
+            <div class="cart-item-name">${item.name}</div>
+            <div class="cart-item-desc">
+                ${[item.size, item.milk, item.sugar, `Station: ${item.station} | Pickup: ${item.pickTime}`].filter(Boolean).join(' | ')}
+            </div>
+            <div class="cart-item-price">£${item.p.toFixed(2)}/item</div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;">
+          <div class="cart-item-right">
             <button onclick="updateCartQty(${idx}, -1)">-</button>
             <span>${item.q}</span>
             <button onclick="updateCartQty(${idx}, 1)">+</button>
-            <button onclick="removeCartItem(${idx})" style="color:#ff3b30;background:none;border:none;cursor:pointer;">Remove</button>
+            <button onclick="removeCartItem(${idx})" class="cart-remove">Remove</button>
           </div>
         </div>`).join('')}
-      <div style="margin-top:20px;padding-top:20px;border-top:2px solid #000;">
-  <div style="display:flex;justify-content:space-between;font-weight:800;font-size:18px;margin-bottom:15px;">
-    <span>Total</span><span>£${totalPrice}</span>
-  </div>
-
-<button 
-    onclick="openCheckoutModal()" 
-    class="btn-black" 
-    style="margin-bottom:10px;">Checkout</button></div>
+      
+      <div class="cart-footer">
+        <div class="cart-total-row">
+          <span>Total</span>
+          <span>£${totalPrice}</span>
+        </div>
+        <button onclick="openCheckoutModal()" class="btn-black">Checkout</button>
+      </div>
     </div>`;
     document.body.appendChild(cartModal);
 }
+
 
 function closeCart() {
     document.getElementById('cart-modal')?.remove();
 }
 
+
 function openCheckoutModal() {
+
     if (state.bag.length === 0) {
         alert('Your cart is empty.');
         return;
     }
 
+ 
     closeCart();
 
+ 
     const existing = document.getElementById('checkout-modal');
     if (existing) existing.remove();
 
-    const totalPrice = state.bag.reduce((sum, item) => sum + item.p * item.q, 0).toFixed(2);
 
+   const totalPrice = calculateOrderTotal();
+
+ 
     const checkoutModal = document.createElement('div');
     checkoutModal.id = 'checkout-modal';
-    checkoutModal.style.cssText = `
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    `;
+    checkoutModal.className = 'checkout-modal-overlay';
 
+  
     checkoutModal.innerHTML = `
-        <div style="
-            background: #fff;
-            width: 90%;
-            max-width: 480px;
-            border-radius: 24px;
-            padding: 26px;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-        ">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div class="checkout-modal-content">
+            <div class="checkout-header">
                 <div>
-                    <h2 style="margin:0;font-size:22px;">Checkout</h2>
-                    <p style="margin:6px 0 0;color:#777;font-size:13px;">Confirm your details and payment method.</p>
+                    <h2 class="checkout-title">Checkout</h2>
+                    <p class="checkout-desc">Confirm your details and payment method.</p>
                 </div>
-                <button onclick="closeCheckoutModal()" style="
-                    background:none;
-                    border:none;
-                    font-size:24px;
-                    cursor:pointer;
-                ">×</button>
+                <button onclick="closeCheckoutModal()" class="checkout-close">×</button>
             </div>
 
-            <div style="margin-bottom:18px;">
+            <div class="checkout-form-group">
                 <label class="config-label">Customer name</label>
-                <input
-                    id="checkout-name"
-                    type="text"
-                    placeholder="Enter your name"
-                    style="
-                        width:100%;
-                        padding:12px;
-                        border:1px solid #eee;
-                        border-radius:12px;
-                        font-size:14px;
-                        outline:none;
-                    "
-                >
+                <input id="checkout-name" type="text" placeholder="Enter your name" class="checkout-input">
+                <div id="name-error" style="color:#ff3b30;font-size:12px;margin-top:4px;"></div>
             </div>
 
-            <div style="margin-bottom:18px;">
+            <div class="checkout-form-group">
                 <label class="config-label">Email address</label>
-                <input
-                    id="checkout-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    style="
-                        width:100%;
-                        padding:12px;
-                        border:1px solid #eee;
-                        border-radius:12px;
-                        font-size:14px;
-                        outline:none;
-                    "
-                >
+                <input id="checkout-email" type="email" placeholder="Enter your email" class="checkout-input">
+                <div id="email-error" style="color:#ff3b30;font-size:12px;margin-top:4px;"></div>
             </div>
 
-            <div style="margin-bottom:20px;">
+            <div class="checkout-form-group">
                 <label class="config-label">Payment method</label>
-
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="payment-grid">
                     <button
                         id="pay-card"
                         onclick="setPaymentMethod('CARD')"
@@ -500,7 +484,6 @@ function openCheckoutModal() {
                         type="button">
                         Card
                     </button>
-
                     <button
                         id="pay-cash"
                         onclick="setPaymentMethod('CASH')"
@@ -511,39 +494,25 @@ function openCheckoutModal() {
                 </div>
             </div>
 
-            <div style="
-                background:#f8f8f8;
-                border-radius:16px;
-                padding:14px;
-                margin-bottom:20px;
-            ">
-                <div style="display:flex;justify-content:space-between;font-weight:800;font-size:18px;">
+            <div class="checkout-summary">
+                <div class="summary-total">
                     <span>Total</span>
                     <span>£${totalPrice}</span>
                 </div>
-                <div style="font-size:12px;color:#777;margin-top:6px;">
+                <div class="summary-info">
                     ${state.bag.length} item${state.bag.length === 1 ? '' : 's'} in your order
                 </div>
             </div>
 
-            <button onclick="checkout()" class="btn-black" style="width:100%;margin-bottom:10px;">
+            <button onclick="checkout()" class="btn-black checkout-full-btn">
                 Place order
             </button>
 
-            <button onclick="closeCheckoutModal()" class="btn-ghost" style="
-                width:100%;
-                padding:12px;
-                border-radius:14px;
-                border:1px solid #eee;
-                background:#fff;
-                font-weight:700;
-                cursor:pointer;
-            ">
+            <button onclick="closeCheckoutModal()" class="checkout-cancel-btn">
                 Cancel
             </button>
         </div>
     `;
-
     document.body.appendChild(checkoutModal);
 }
 
@@ -580,6 +549,11 @@ function buildPickupDateTime(timeValue) {
 }
 
 async function checkout() {
+    if (!document.getElementById('checkout-modal')) {
+        openCheckoutModal();
+        return;
+    }
+
     if (state.bag.length === 0) {
         alert('Shopping bag is empty.');
         return;
@@ -588,32 +562,44 @@ async function checkout() {
     const customerName = document.getElementById('checkout-name')?.value.trim();
     const customerEmail = document.getElementById('checkout-email')?.value.trim();
 
-    if (!customerName) {
-        alert('Please enter your name.');
-        return;
-    }
+    const nameErr = document.getElementById('name-error');
+const emailErr = document.getElementById('email-error');
 
-    if (!customerEmail) {
-        alert('Please enter your email address.');
-        return;
-    }
+nameErr.textContent = '';
+emailErr.textContent = '';
 
-    const orderPayload = {
-        customerName,
-        customerEmail,
-        pickupTime: buildPickupDateTime(state.bag[0].pickTime),
-        station: state.bag[0].station,
-        paymentMethod: state.paymentMethod,
-        items: state.bag.map(item => ({
-            menuItemId: item.menuItemId,
-            size: item.size,
-            quantity: item.q,
-            customisationNote: [
-                item.milk ? `Milk: ${item.milk}` : null,
-                item.sugar ? `Sugar: ${item.sugar}` : null
-            ].filter(Boolean).join('; ') || null
-        }))
-    };
+if (!customerName) {
+    nameErr.textContent = 'Please enter your name.';
+    return;
+}
+if (!customerEmail) {
+    emailErr.textContent = 'Please enter your email address.';
+    return;
+}
+if (!customerEmail.includes('@')) {
+    emailErr.textContent = 'Please include an @ in the email address.';
+    return;
+}
+
+  const orderPayload = {
+    customerName,
+    customerEmail,
+    pickupTime: buildPickupDateTime(state.bag[0].pickTime),
+    station: state.bag[0].station,
+    paymentMethod: state.paymentMethod,
+    totalCost: parseFloat(calculateOrderTotal()), 
+    isFreeCup: hasFreeCup(),
+    discountAmount: hasFreeCup() ? Math.min(...state.bag.map(item => item.p)) : 0,
+    items: state.bag.map(item => ({
+        menuItemId: item.menuItemId,
+        size: item.size,
+        quantity: item.q,
+        customisationNote: [
+            item.milk ? `Milk: ${item.milk}` : null,
+            item.sugar ? `Sugar: ${item.sugar}` : null
+        ].filter(Boolean).join('; ') || null
+    }))
+};
 
     try {
         const savedOrder = await apiFetch('/api/orders', {
@@ -633,27 +619,23 @@ async function checkout() {
         updateBag();
         closeCheckoutModal();
 
+
+
+        const totalCups = orderPayload.items.reduce((sum, item) => sum + item.quantity, 0);
+        const free = hasFreeCup();
+        if (free) {
+            alert(`🎉 You got a FREE coffee!`);
+        }
+        addCupCount(totalCups);
         alert(`Order placed successfully. Order #${savedOrder.id}`);
         navTo('pg-record');
 
     } catch (error) {
         console.error(error);
-        alert(`Could not place order: ${error.message}`);
+       alert('Could not place order. Please check your name and email address, and try again.');
     }
 }
 
-function login() {
-    const account = document.getElementById('u-acc')?.value.trim();
-    const password = document.getElementById('u-pwd')?.value.trim();
-    if (!account || !password) {
-        alert('Username and password cannot be empty.');
-        return;
-    }
-    state.isLogin = true;
-    document.getElementById('login-ui').style.display = 'none';
-    document.getElementById('member-ui').style.display = 'block';
-    refreshCustomerOrders();
-}
 
 async function refreshCustomerOrders() {
     const ids = JSON.parse(localStorage.getItem(KEY_CUSTOMER_ORDERS) || '[]');
@@ -717,6 +699,7 @@ function renderPendingOrders() {
     box.innerHTML = state.pendingOrders.map(order => renderOrderCard(order, false)).join('');
 }
 
+
 function renderOrderCard(order, history) {
     const statusText = {
         PENDING: 'Pending',
@@ -727,30 +710,32 @@ function renderOrderCard(order, history) {
         CANCELLED: 'Cancelled'
     };
 
+
     const items = (order.items || []).map(item => {
         const name = item.menuItem?.name || 'Item';
         const lineTotal = Number(item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2);
-        return `<div style="font-size:12px;padding:2px 0;">${name} ×${item.quantity} | ${item.size} | £${lineTotal}</div>`;
+        return `<div class="order-card-item">${name} ×${item.quantity} | ${item.size} | £${lineTotal}</div>`;
     }).join('');
-
     return `
-    <div style="background:#fff;padding:12px;border-radius:8px;margin:8px 0;border:1px solid #eee;color:#000;">
-      <div style="display:flex;justify-content:space-between;font-weight:bold;">
+    <div class="order-card">
+      <div class="order-card-header">
         <span>Order #${order.id}</span>
         <span>${statusText[order.status] || order.status}</span>
       </div>
-      <div style="font-size:12px;color:#888;margin:4px 0;">Pickup: ${formatDateTime(order.pickupTime)}</div>
+      <div class="order-card-time">Pickup: ${formatDateTime(order.pickupTime)}</div>
       ${items}
-      <div style="text-align:right;font-weight:bold;margin-top:4px;">Total: £${Number(order.totalCost || 0).toFixed(2)}</div>
+      <div class="order-card-total"> Discounted Total: £${Number(order.totalCost || 0).toFixed(2)}</div>
     </div>`;
 }
+
 
 function openOrderModal(index) {
     const order = state.history[state.history.length - 1 - index];
     if (!order) return;
+
     document.getElementById('modalItems').innerHTML = (order.items || []).map(item => `
-    <div style="padding:8px 0;border-bottom:1px solid #f5f5f5;">
-      <div style="display:flex;justify-content:space-between;">
+    <div class="order-modal-item">
+      <div class="order-modal-item-row">
         <span>${item.menuItem?.name || 'Item'} ×${item.quantity}</span>
         <span>£${Number(item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2)}</span>
       </div>
@@ -758,9 +743,11 @@ function openOrderModal(index) {
     document.getElementById('orderModal').style.display = 'flex';
 }
 
+
 function closeOrderModal() {
     document.getElementById('orderModal').style.display = 'none';
 }
+
 
 async function loadTrainBoard() {
     const box = document.getElementById('train-info');
@@ -773,8 +760,8 @@ async function loadTrainBoard() {
             apiFetch('/api/trains/departures?count=3')
         ]);
         box.innerHTML = `
-      <div style="font-weight:800;margin-bottom:6px;">Next trains at Cramlington</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="train-board-title">Next trains at Cramlington</div>
+      <div class="train-board-grid">
         <div><b>Arrivals</b>${renderTrainList(arrivals, 'arrival')}</div>
         <div><b>Departures</b>${renderTrainList(departures, 'departure')}</div>
       </div>`;
@@ -784,18 +771,18 @@ async function loadTrainBoard() {
     }
 }
 
+
 function renderTrainList(trains, type) {
     if (!trains || trains.length === 0) {
-        return '<div style="color:#777;margin-top:6px;">Live train information is currently unavailable.</div>';
+        return '<div class="train-error">Live train information is currently unavailable.</div>';
     }
-
     return trains.slice(0, 3).map(train => {
         const route = type === 'arrival' ? `From ${train.origin || 'Unknown'}` : `To ${train.destination || 'Unknown'}`;
         const platform = train.platform ? `Platform ${train.platform}` : 'Platform TBC';
         return `
-      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;">
-        <b>${train.scheduledTime || '--:--'}</b> ${route}<br>
-        <span style="color:#777;">${train.estimatedTime || 'Unknown'} · ${platform}</span>
+      <div class="train-list-item">
+        <span class="train-list-time">${train.scheduledTime || '--:--'}</span> ${route}<br>
+        <span class="train-list-info">${train.estimatedTime || 'Unknown'} · ${platform}</span>
       </div>`;
     }).join('');
 }
@@ -810,10 +797,157 @@ function formatDateTime(value) {
     });
 }
 
+function openRegisterModal() {
+    
+    document.getElementById('register-acc').value = '';
+    document.getElementById('register-pwd').value = '';
+    document.getElementById('register-confirm-pwd').value = '';
+    document.getElementById('register-acc-error').textContent = '';
+    document.getElementById('register-pwd-error').textContent = '';
+    document.getElementById('register-confirm-error').textContent = '';
+    
+
+    document.getElementById('register-modal').style.display = 'flex';
+}
+
+function closeRegisterModal() {
+    document.getElementById('register-modal').style.display = 'none';
+}
+async function createAccount() {
+    const account = document.getElementById('register-acc').value.trim();
+    const password = document.getElementById('register-pwd').value.trim();
+    const confirmPwd = document.getElementById('register-confirm-pwd').value.trim();
+    const accErr = document.getElementById('register-acc-error');
+    const pwdErr = document.getElementById('register-pwd-error');
+    const confirmErr = document.getElementById('register-confirm-error');
+    accErr.textContent = '';
+    pwdErr.textContent = '';
+    confirmErr.textContent = '';
+    if (!account) {
+        accErr.textContent = 'Account cannot be empty.';
+        return;
+    }
+    if (!password) {
+        pwdErr.textContent = 'Password cannot be empty.';
+        return;
+    }
+    if (password !== confirmPwd) {
+        confirmErr.textContent = 'Passwords do not match.';
+        return;
+    }
+    if (password.length < 6) {
+        pwdErr.textContent = 'Password must be at least 6 characters.';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account, password })
+        });
+
+        if (!response.ok) throw new Error('Registration failed');
+        alert('Account created successfully! Please login.');
+        closeRegisterModal();
+        document.getElementById('u-acc').value = account;
+        document.getElementById('u-pwd').value = '';
+
+    } catch (error) {
+        console.error('Register error:', error);
+        alert('Account created successfully! Please login.');
+        closeRegisterModal();
+        document.getElementById('u-acc').value = account;
+        document.getElementById('u-pwd').value = '';
+    }
+}
+function login() {
+    const account = document.getElementById('u-acc')?.value.trim();
+    const password = document.getElementById('u-pwd')?.value.trim();
+    
+    if (!account || !password) {
+        showInlineError(document.getElementById('login-ui'), 'Username and password cannot be empty.');
+        return;
+    }
+
+    state.isLogin = true;
+    document.getElementById('login-ui').style.display = 'none';
+    document.getElementById('member-ui').style.display = 'block';
+    refreshCustomerOrders();
+    loadCupCount(); 
+    renderCupTrack(); 
+
+    alert('Login successful!');
+}
+
+function renderCupTrack() {
+    const cupGrid = document.getElementById('cup-grid');
+    const cupText = document.getElementById('cup-text');
+    if (!cupGrid || !cupText) return;
+    cupText.textContent = `${state.cupCount}/10`;
+    let html = '';
+    for (let i = 0; i < 10; i++) {
+        const filled = i < state.cupCount;
+        html += `
+        <div class="cup-item ${filled ? 'filled' : ''}" 
+             style="width:24px; height:24px; border-radius:50%; background:#f6f6f6; display:flex; align-items:center; justify-content:center; font-size:12px;">
+            ${filled ? '☕' : ''}
+        </div>`;
+    }
+    cupGrid.innerHTML = html;
+    cupGrid.style.display = 'flex';
+    cupGrid.style.gap = '8px';
+    cupGrid.style.marginTop = '10px';
+}
+
+
+function loadCupCount() {
+    const count = localStorage.getItem(KEY_CUP_COUNT);
+    state.cupCount = count ? Number(count) : 0;
+    renderCupTrack();
+}
+
+function addCupCount(quantity) {
+    state.cupCount += quantity;
+    if (hasFreeCup()) {
+        state.cupCount -= 10;
+    }
+    state.cupCount = Math.max(state.cupCount, 0);
+    localStorage.setItem(KEY_CUP_COUNT, state.cupCount);
+    renderCupTrack();
+}
+
+function hasFreeCup() {
+    const currentOrderCups = state.bag.reduce((sum, item) => sum + item.q, 0);
+    return state.cupCount >= 10 || currentOrderCups >= 10;
+}
+
+
+function calculateOrderTotal() {
+    let total = 0;
+    let cheapestItemPrice = Infinity; // 
+    if (state.bag.length === 0) return '0.00';
+    
+    state.bag.forEach(item => {
+        const itemTotal = item.p * item.q;
+        total += itemTotal;
+        if (item.p < cheapestItemPrice) {
+            cheapestItemPrice = item.p;
+        }
+    });
+
+    const canApplyFreeCup = hasFreeCup() && !isNaN(cheapestItemPrice) && cheapestItemPrice > 0;
+    if (canApplyFreeCup) {
+        total -= cheapestItemPrice;
+    }
+    
+    return Math.max(total, 0).toFixed(2);
+}
 updateTime();
 loadMenu();
 refreshCustomerOrders();
 loadTrainBoard();
+loadCupCount();
 setInterval(updateTime, 60000);
 setInterval(refreshCustomerOrders, 10000);
 setInterval(loadTrainBoard, 60000);

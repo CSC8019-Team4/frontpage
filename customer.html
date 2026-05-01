@@ -39,11 +39,43 @@
 
     <div id="pg-record" class="page">
         <div id="login-ui" class="hero-section" style="padding: 30px 20px; border-style: dashed;">
-            <p style="margin: 0 0 20px 0; font-weight: 800;">Member Login</p>
-            <input type="text" placeholder="Account" id="u-acc" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px;">
-            <input type="password" placeholder="Password" id="u-pwd" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:20px;">
-            <button class="btn-black" onclick="login()" style="padding:12px;">SIGN IN</button>
+    <p style="margin: 0 0 20px 0; font-weight: 800;">Member Login</p>
+    <input type="text" placeholder="Account" id="u-acc" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px;">
+    <input type="password" placeholder="Password" id="u-pwd" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px;">
+    <button class="btn-black" onclick="login()" style="padding:12px; margin-bottom:10px;">LOGIN</button>
+
+    <button class="btn-ghost register-trigger-btn" onclick="openRegisterModal()" style="padding:12px; width:100%;">REGISTER</button>
+</div>
+
+<div id="register-modal" class="modal-overlay" style="display: none;">
+    <div class="register-modal-content">
+        <div class="checkout-header">
+            <h2 class="register-title">Create Account</h2>
+            <button onclick="closeRegisterModal()" class="checkout-close">×</button>
         </div>
+        
+        <div class="register-form-group">
+            <label class="register-label">Account</label>
+            <input id="register-acc" type="text" placeholder="Enter your account" class="register-input">
+            <div id="register-acc-error" class="register-error"></div>
+        </div>
+        
+        <div class="register-form-group">
+            <label class="register-label">Password</label>
+            <input id="register-pwd" type="password" placeholder="Enter your password" class="register-input">
+            <div id="register-pwd-error" class="register-error"></div>
+        </div>
+        
+        <div class="register-form-group">
+            <label class="register-label">Confirm Password</label>
+            <input id="register-confirm-pwd" type="password" placeholder="Confirm your password" class="register-input">
+            <div id="register-confirm-error" class="register-error"></div>
+        </div>
+        
+        <button onclick="createAccount()" class="register-submit-btn">REGISTER</button>
+        <button onclick="closeRegisterModal()" class="register-cancel-btn">Cancel</button>
+    </div>
+</div>
 
         <div class="member-card" id="member-ui" style="display:none;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -73,7 +105,8 @@
 
 <div class="float-pay" id="pay-bar">
     <div style="font-size:14px; font-weight:800;">Bag · <span id="cart-q">0</span> Cups</div>
-    <div onclick="checkout()" style="cursor:pointer; font-weight:900;">Checkout £<span id="cart-p">0.00</span> <i class="fa-solid fa-arrow-right"></i></div>
+    <div onclick="checkout()" style="cursor:pointer; font-weight:900;">
+        Checkout £<span id="cart-p">0.00</span> <i class="fa-solid fa-arrow-right"></i></div>
 </div>
 <div style="position:fixed; 
 inset:0; 
@@ -136,12 +169,33 @@ overflow-y:auto;
 
             </button>
             <span id="q-val" style="font-size:20px; font-weight:900;">1</span>
-            <button onclick="qty(1)" style="width:36px; height:36px; border:2px solid #000; border-radius:50%; background:none; font-weight:900;">+</button>
+            <button onclick="qty(1)" 
+            style="width:36px; 
+            height:36px; 
+            border:2px solid #000; 
+            border-radius:50%; 
+            background:none; 
+            font-weight:900;">+</button>
         </div>
     </div>
 
     <button class="btn-black" onclick="addBag()" style="margin-top:35px;">ADD TO BAG</button>
 </div>
+
+<div id="menu-items"></div>
+<div id="drawer" style="bottom: -100%;"></div>
+<div id="mask" style="display: none;"></div>
+<div id="orderModal" class="modal-overlay" style="display: none;">
+    <div class="cart-modal-content">
+        <div class="cart-header">
+            <h3 class="cart-title">Order Details</h3>
+            <button onclick="closeOrderModal()" class="cart-close">×</button>
+        </div>
+        <div id="modalItems"></div>
+    </div>
+</div>
+
+
 <div class="nav-bar">
     <div class="nav-item active" onclick="navTo('pg-order')"><i class="fa-solid fa-mug-hot"></i>HomePage</div>
     <div class="nav-item" onclick="navTo('pg-record')"><i class="fa-solid fa-id-card-clip"></i>Me</div>

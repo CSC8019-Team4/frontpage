@@ -5,6 +5,15 @@ const KEY_SHOP_STATS = 'ws_shop_stats';
 const API_BASE = "http://localhost:8080";
 const STAFF_TOKEN = "whistlestop-staff-2025";
 
+function isToday(dateValue) {
+    if (!dateValue) return false;
+    const orderDate = new Date(dateValue);
+    const today = new Date();
+    return orderDate.getFullYear() === today.getFullYear()
+        && orderDate.getMonth() === today.getMonth()
+        && orderDate.getDate() === today.getDate();
+}
+
 async function adminFetch(path, options = {}) {
     const response = await fetch(`${API_BASE}${path}`, {
         ...options,
@@ -23,6 +32,7 @@ async function adminFetch(path, options = {}) {
     return response.status === 204 ? null : response.json();
 }
 
+
 let products = JSON.parse(localStorage.getItem(KEY_MENU)) || [
     { name: 'Americano', p1: 1.5, p2: 2.0, stock: true },
     { name: 'Americano with milk', p1: 2.0, p2: 2.5, stock: true },
@@ -35,8 +45,6 @@ let products = JSON.parse(localStorage.getItem(KEY_MENU)) || [
 
 function renderAll() {
     const currentStation = document.getElementById('stationFilter').value;
-
-
     adminFetch("/api/orders/dashboard")
         .then(orders => {
 
@@ -101,9 +109,9 @@ function renderAll() {
                 document.getElementById('list-ready').innerHTML += card;
                 counts.c3++;
             }
-            else if(ord.status === 'COLLECTED') {
+            else if(ord.status === 'COLLECTED' && isToday(ord.updatedAt || ord.pickupTime)) {
                 counts.done++;
-                counts.rev += (ord.total || (ord.p * ord.q));
+                counts.rev += calculateOrderTotal(ord);
             }
         });
 
@@ -112,7 +120,8 @@ function renderAll() {
         document.getElementById('num1').innerText = counts.c1;
         document.getElementById('num2').innerText = counts.c2;
         document.getElementById('num3').innerText = counts.c3;
-
+        document.getElementById('count-done').innerText = counts.done;
+        document.getElementById('total-rev').innerText = `£${counts.rev.toFixed(2)}`;
         renderShopStats();
         })
         .catch(error => {
@@ -192,7 +201,7 @@ function renderBtns(ord, orderId) {
 
     return '';
 }
-// 后端状态更新（已改好）
+
 function updateOrderStatus(orderId, status) {
     adminFetch(`/api/orders/${orderId}/status?status=${status}`, {
         method: "PATCH"
@@ -202,28 +211,44 @@ function updateOrderStatus(orderId, status) {
 }
 
 function renderShopStats() {
-    adminFetch("/api/orders/dashboard")
-        .then(ords => {
-            const currentStation = document.getElementById('stationFilter').value;
-            ords = ords.filter(ord => !ord.station || ord.station === currentStation);
+    Promise.all([
+        adminFetch("/api/orders/dashboard"),  
+        adminFetch("/api/orders/archive")    
+    ])
+    .then(([activeOrders, historyOrders]) => {
+        const currentStation = document.getElementById('stationFilter').value;
 
-            const pendingCount = ords.filter(o => o.status === "PENDING").length;
-            const inProgressCount = ords.filter(o =>
-                o.status === "ACCEPTED" || o.status === "IN_PROGRESS"
-            ).length;
-            const readyCount = ords.filter(o => o.status === "READY").length;
+        const filteredActive = activeOrders.filter(ord => 
+            !ord.station || ord.station === currentStation
+        );
+        const filteredHistory = historyOrders.filter(ord => 
+            !ord.station || ord.station === currentStation
+        );
+        const pendingCount = filteredActive.filter(o => o.status === "PENDING").length;
+        const inProgressCount = filteredActive.filter(o =>
+            o.status === "ACCEPTED" || o.status === "IN_PROGRESS"
+        ).length;
+        const readyCount = filteredActive.filter(o => o.status === "READY").length;
 
-            document.getElementById('count-new').innerText = pendingCount;
-            document.getElementById('count-prep').innerText = inProgressCount;
-            document.getElementById('num1').innerText = pendingCount;
-            document.getElementById('num2').innerText = inProgressCount;
-            document.getElementById('num3').innerText = readyCount;
-            document.getElementById('count-done').innerText = '0';
-            document.getElementById('total-rev').innerText = '0.00';
-        })
-        .catch(error => {
-            console.error("Could not load shop stats:", error);
-        });
+        const todayCompletedOrders = filteredHistory.filter(o => 
+            o.status === "COLLECTED" && isToday(o.updatedAt || o.pickupTime || o.createdAt)
+        );
+        const completedTodayCount = todayCompletedOrders.length;
+        const todayRevenue = todayCompletedOrders.reduce((sum, ord) => {
+            return sum + calculateOrderTotal(ord);
+        }, 0);
+
+        document.getElementById('count-new').innerText = pendingCount;
+        document.getElementById('count-prep').innerText = inProgressCount;
+        document.getElementById('num1').innerText = pendingCount;
+        document.getElementById('num2').innerText = inProgressCount;
+        document.getElementById('num3').innerText = readyCount;
+        document.getElementById('count-done').innerText = completedTodayCount;
+        document.getElementById('total-rev').innerText = todayRevenue.toFixed(2);
+    })
+    .catch(error => {
+        console.error("Could not load shop stats:", error);
+    });
 }
 
 function renderArchive() {
@@ -365,5 +390,4 @@ setInterval(() => {
 window.onload = function() {
     renderAll();
     renderMenuTable();
-    renderShopStats();
 };
