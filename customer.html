@@ -10,13 +10,7 @@
 </head>
 <body>
 
-<div class="header" style="
-        background: linear-gradient(135deg, #fff1e4, #FFE4C4);
-        border-bottom: 1px solid #ffecdb;
-        position: relative;
-        z-index: 1;
-    ">
-
+<div class="header ">
     <div class="header-left">
        <div class="loc-select">
         <select id="station">
@@ -42,9 +36,21 @@
     <p style="margin: 0 0 20px 0; font-weight: 800;">Member Login</p>
     <input type="text" placeholder="Account" id="u-acc" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px;">
     <input type="password" placeholder="Password" id="u-pwd" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px;">
-    <button class="btn-black" onclick="login()" style="padding:12px; margin-bottom:10px;">LOGIN</button>
+    <button onclick="login()" style="width:100%; padding:12px; margin-bottom:10px; 
+background:#fff; color:#000; border:2px solid #000; border-radius:18px; 
+font-weight:800; font-size:16px; transition: all 0.3s ease;
+cursor:pointer;"
+onmouseover="this.transform='translateY(-3px)';this.boxShadow='0 6px 15px rgba(0,0,0,0.15)';"
+onmouseout="this.transform='translateY(0)';this.boxShadow='none';">
+LOGIN
+</button>
 
-    <button class="btn-ghost register-trigger-btn" onclick="openRegisterModal()" style="padding:12px; width:100%;">REGISTER</button>
+    <button class="btn-ghost register-trigger-btn" onclick="openRegisterModal()" style="padding:12px; width:100%;
+transition: all 0.3s ease; cursor:pointer;"
+onmouseover="this.transform='translateY(-3px)';this.boxShadow='0 6px 15px rgba(46,125,50,0.25)';"
+onmouseout="this.transform='translateY(0)';this.boxShadow='none';">
+REGISTER
+</button>
 </div>
 
 <div id="register-modal" class="modal-overlay" style="display: none;">
@@ -95,10 +101,13 @@
                 <div style="margin-top:15px;padding-top:10px;border-top:1px solid #eee;font-weight:bold;text-align:right;"></div>
             </div>
         </div>
-
-        <h3 style="font-size:16px; margin: 30px 0 15px;">pending orders、</h3>
+        <div style="display:inline-block; background:#ffffff; color:#1b6d19; border:2px solid #2E7D32; padding:6px 14px; border-radius:12px; font-size:14px; font-weight:800; margin:30px 0 15px;">
+    Pending Orders
+</div>
         <div id="pending-orders" style="font-size: 13px; color: #999;"> no pending orders</div>
-        <h3 style="font-size:16px; margin: 30px 0 15px;">Orders history</h3>
+        <div style="display:inline-block; background:#ffffff; color:#000; border:2px solid #000; padding:6px 14px; border-radius:12px; font-size:14px; font-weight:800; margin:30px 0 15px;">
+    Orders history
+</div>
         <div id="orders-box" style="font-size: 13px; color: #999;">No record found.</div>
     </div>
 </div>

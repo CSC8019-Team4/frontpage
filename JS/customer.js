@@ -22,7 +22,7 @@ const fallbackMenu = [
         supportsMilk: false,
         supportsSugar: true,
         supportsLarge: true,
-        img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop'
+        img: 'https://qcloud.dpfile.com/pc/ubxJ-VNoyN4uOfTBepm1tCeKrZ0UPsS5TWmMGkZvPbK86DRaYKVlOfP__9y-SpoC.jpg'
     },
     {
         id: 2,
@@ -32,7 +32,7 @@ const fallbackMenu = [
         supportsMilk: true,
         supportsSugar: true,
         supportsLarge: true,
-        img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&h=200&fit=crop'
+        img: 'https://miaobi-lite.bj.bcebos.com/miaobi/5mao/b%275ZKW5ZWh54mb5aW2XzE3MzU1MTIyNTMuMTMyNDI5OF8xNzM1NTEyMjUzLjUxNDA2OQ%3D%3D%27/1.png'
     },
     {
         id: 3,
@@ -42,7 +42,7 @@ const fallbackMenu = [
         supportsMilk: true,
         supportsSugar: true,
         supportsLarge: true,
-        img: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=300&h=200&fit=crop'
+        img: 'https://preview.qiantucdn.com/58pic/vj/HJ/QS/7A/7r1oqpv3yzd6h49xlm2ntisw0k8j5ucf_PIC2018.png!w1024_new_small_1'
     },
     {
         id: 4,
@@ -52,7 +52,7 @@ const fallbackMenu = [
         supportsMilk: true,
         supportsSugar: true,
         supportsLarge: true,
-        img: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&h=200&fit=crop'
+        img: 'https://inews.gtimg.com/newsapp_bt/0/12407295198/1000.jpg'
     },
     {
         id: 5,
@@ -62,7 +62,7 @@ const fallbackMenu = [
         supportsMilk: true,
         supportsSugar: true,
         supportsLarge: true,
-        img: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=300&h=200&fit=crop'
+        img: 'https://gips3.baidu.com/it/u=1743325701,3884706280&fm=3074&app=3074&f=JPEG'
     },
     {
         id: 6,
@@ -72,7 +72,7 @@ const fallbackMenu = [
         supportsMilk: true,
         supportsSugar: true,
         supportsLarge: true,
-        img: 'https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=300&h=200&fit=crop'
+        img: 'https://5b0988e595225.cdn.sohucs.com/a_auto,c_cut,x_2,y_0,w_825,h_550/images/20190129/bc09903321a640c581236122a1b7123c.jpeg'
     },
     {
         id: 7,
@@ -82,7 +82,7 @@ const fallbackMenu = [
         supportsMilk: false,
         supportsSugar: false,
         supportsLarge: false,
-        img: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=300&h=200&fit=crop'
+        img: 'https://pic.rmb.bdstatic.com/c61e5447d36ae72409dbefb59aedac28@h_1280'
     }
 ];
 
@@ -251,7 +251,11 @@ function openDrawer(menuItemId) {
 
       <div class="drawer-actions">
         <div class="drawer-row">
-          <span class="drawer-label">Pickup time</span>
+          <span class="drawer-label">Pickup Date</span>
+          <input type="date" id="p-date" class="drawer-input" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="drawer-row">
+          <span class="drawer-label">Pickup Time</span>
           <input type="time" id="p-time" class="drawer-input">
         </div>
 
@@ -317,11 +321,12 @@ function updatePrice() {
 }
 
 function addBag() {
+    const pickDate = document.getElementById('p-date')?.value;
     const pickTime = document.getElementById('p-time')?.value;
     const station = document.getElementById('pickup-station').value;
 
-    if (!pickTime) {
-        alert('Please choose a pickup time.');
+    if (!pickDate || !pickTime) {
+        alert('Please select a pickup date and time.');
         return;
     }
 
@@ -341,6 +346,7 @@ function addBag() {
         size: state.selectedSize,
         milk: selectedMilk,
         sugar: selectedSugar,
+        pickDate,
         pickTime,
         station  
     });
@@ -534,12 +540,11 @@ function removeCartItem(idx) {
     if (state.bag.length > 0) openCart();
 }
 
-function buildPickupDateTime(timeValue) {
-    const now = new Date();
-    const [hours, minutes] = timeValue.split(':').map(Number);
-    const pickup = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
-    if (pickup < now) pickup.setDate(pickup.getDate() + 1);
-
+function buildPickupDateTime(pickDate, pickTime) {
+    if (!pickDate || !pickTime) return null;
+    const [y, m, d] = pickDate.split('-').map(Number);
+    const [hours, minutes] = pickTime.split(':').map(Number);
+    const pickup = new Date(y, m - 1, d, hours, minutes);
     const yyyy = pickup.getFullYear();
     const mm = String(pickup.getMonth() + 1).padStart(2, '0');
     const dd = String(pickup.getDate()).padStart(2, '0');
@@ -548,44 +553,63 @@ function buildPickupDateTime(timeValue) {
     return `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
 }
 
+
 async function checkout() {
     if (!document.getElementById('checkout-modal')) {
         openCheckoutModal();
         return;
     }
-
     if (state.bag.length === 0) {
         alert('Shopping bag is empty.');
         return;
     }
-
     const customerName = document.getElementById('checkout-name')?.value.trim();
     const customerEmail = document.getElementById('checkout-email')?.value.trim();
-
     const nameErr = document.getElementById('name-error');
-const emailErr = document.getElementById('email-error');
+    const emailErr = document.getElementById('email-error');
 
-nameErr.textContent = '';
-emailErr.textContent = '';
+    nameErr.textContent = '';
+    emailErr.textContent = '';
 
-if (!customerName) {
-    nameErr.textContent = 'Please enter your name.';
-    return;
-}
-if (!customerEmail) {
-    emailErr.textContent = 'Please enter your email address.';
-    return;
-}
-if (!customerEmail.includes('@')) {
-    emailErr.textContent = 'Please include an @ in the email address.';
-    return;
-}
+    if (!customerName) {
+        nameErr.textContent = 'Please enter your full name.';
+        return;
+    }
+    if (!customerEmail) {
+        emailErr.textContent = 'Please enter your email address.';
+        return;
+    }
+    if (!customerEmail.includes('@')) {
+        emailErr.textContent = 'Please enter a valid email address.';
+        return;
+    }
+    const firstItem = state.bag[0];
+    const { pickDate, pickTime } = firstItem;
+
+    const checkDate = new Date(pickDate);
+    const day = checkDate.getDay();
+    const [h, m] = pickTime.split(':').map(Number);
+    const timeNum = h + m / 60;
+
+    let isOpen = false;
+    if (day >= 1 && day <= 5) {
+        isOpen = timeNum >= 6.5 && timeNum < 19;
+    } else if (day === 6) {
+        isOpen = timeNum >= 7 && timeNum < 18;
+    } else {
+        isOpen = false;
+    }
+
+    if (!isOpen) {
+        alert('Sorry, the kiosk is closed at this pickup time.\n\nMon-Fri: 06:30-19:00\nSat: 07:00-18:00\nSun: Closed');
+        return;
+    }
 
   const orderPayload = {
     customerName,
     customerEmail,
-    pickupTime: buildPickupDateTime(state.bag[0].pickTime),
-    station: state.bag[0].station,
+    pickupTime: buildPickupDateTime(firstItem.pickDate, firstItem.pickTime),
+    station: firstItem.station,
     paymentMethod: state.paymentMethod,
     totalCost: parseFloat(calculateOrderTotal()), 
     isFreeCup: hasFreeCup(),
@@ -619,20 +643,14 @@ if (!customerEmail.includes('@')) {
         updateBag();
         closeCheckoutModal();
 
-
-
         const totalCups = orderPayload.items.reduce((sum, item) => sum + item.quantity, 0);
-        const free = hasFreeCup();
-        if (free) {
-            alert(`🎉 You got a FREE coffee!`);
-        }
         addCupCount(totalCups);
         alert(`Order placed successfully. Order #${savedOrder.id}`);
         navTo('pg-record');
 
     } catch (error) {
         console.error(error);
-       alert('Could not place order. Please check your name and email address, and try again.');
+        alert('Failed to place order. Please verify your information and try again.');
     }
 }
 
@@ -925,7 +943,7 @@ function hasFreeCup() {
 
 function calculateOrderTotal() {
     let total = 0;
-    let cheapestItemPrice = Infinity; // 
+    let cheapestItemPrice = Infinity;
     if (state.bag.length === 0) return '0.00';
     
     state.bag.forEach(item => {
