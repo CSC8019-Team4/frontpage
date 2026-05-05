@@ -122,7 +122,7 @@ async function updateTime() {
             ${range}
         `;
     } catch (error) {
-        console.warn('获取营业时间失败，使用默认值:', error);
+        console.warn(':', error);
     
         fallbackUpdateTime();
     }
