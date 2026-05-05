@@ -3,213 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Whistlestop Coffee Hut</title>
+    
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
     <link rel="stylesheet" href="CSS/customer.css">
 </head>
 <body>
 
-<div class="header ">
-    <div class="header-left">
-       <div class="loc-select">
-        <select id="station">
-            <option>Cramlington Station</option>
-            <option>Newcastle Station</option>
-            <option>Morpeth Station</option>
-        </select>
-        <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: #ccc;"></i>
-       </div>
-        <div id="train-info" style="padding:10px 20px; background:white; font-size:12px;"></div>
-   </div>
+    <!-- Header Section -->
+    <div class="header">
+        <div class="header-left">
+            <div class="loc-select">
+                <select id="station">
+                    <option>Cramlington Station</option>
+                    <option>Newcastle Station</option>
+                    <option>Morpeth Station</option>
+                </select>
+                <i class="fa-solid fa-chevron-down loc-select-icon"></i>
+            </div>
+            <div id="train-info" class="train-info"></div>
+        </div>
         <div id="timeBox" class="biz-hours"></div>
-</div>
-
-
-<div class="container"style="padding: 0 0px;">
-    <div id="pg-order" class="page active">
-        <div id="menu-items"></div>
     </div>
 
-    <div id="pg-record" class="page">
-        <div id="login-ui" class="hero-section" style="padding: 30px 20px; border-style: dashed;">
-    <p style="margin: 0 0 20px 0; font-weight: 800;">Member Login</p>
-    <input type="text" placeholder="Account" id="u-acc" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px;">
-    <input type="password" placeholder="Password" id="u-pwd" style="width:100%; padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px;">
-    <button onclick="login()" style="width:100%; padding:12px; margin-bottom:10px; 
-background:#fff; color:#000; border:2px solid #000; border-radius:18px; 
-font-weight:800; font-size:16px; transition: all 0.3s ease;
-cursor:pointer;"
-onmouseover="this.transform='translateY(-3px)';this.boxShadow='0 6px 15px rgba(0,0,0,0.15)';"
-onmouseout="this.transform='translateY(0)';this.boxShadow='none';">
-LOGIN
-</button>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Order Page -->
+        <div id="pg-order" class="page active">
+            <div id="menu-items"></div>
+        </div>
 
-    <button class="btn-ghost register-trigger-btn" onclick="openRegisterModal()" style="padding:12px; width:100%;
-transition: all 0.3s ease; cursor:pointer;"
-onmouseover="this.transform='translateY(-3px)';this.boxShadow='0 6px 15px rgba(46,125,50,0.25)';"
-onmouseout="this.transform='translateY(0)';this.boxShadow='none';">
-REGISTER
-</button>
-</div>
-
-<div id="register-modal" class="modal-overlay" style="display: none;">
-    <div class="register-modal-content">
-        <div class="checkout-header">
-            <h2 class="register-title">Create Account</h2>
-            <button onclick="closeRegisterModal()" class="checkout-close">×</button>
-        </div>
-        
-        <div class="register-form-group">
-            <label class="register-label">Account</label>
-            <input id="register-acc" type="text" placeholder="Enter your account" class="register-input">
-            <div id="register-acc-error" class="register-error"></div>
-        </div>
-        
-        <div class="register-form-group">
-            <label class="register-label">Password</label>
-            <input id="register-pwd" type="password" placeholder="Enter your password" class="register-input">
-            <div id="register-pwd-error" class="register-error"></div>
-        </div>
-        
-        <div class="register-form-group">
-            <label class="register-label">Confirm Password</label>
-            <input id="register-confirm-pwd" type="password" placeholder="Confirm your password" class="register-input">
-            <div id="register-confirm-error" class="register-error"></div>
-        </div>
-        
-        <button onclick="createAccount()" class="register-submit-btn">REGISTER</button>
-        <button onclick="closeRegisterModal()" class="register-cancel-btn">Cancel</button>
-    </div>
-</div>
-
-        <div class="member-card" id="member-ui" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:18px; font-weight:800; letter-spacing:1px;">COFFEE PASS</span>
-                <span id="cup-text" style="font-size:12px; color:var(--hey-gold);">0/10</span>
+        <!-- Member Profile Page -->
+        <div id="pg-record" class="page">
+            <!-- Login UI -->
+            <div id="login-ui" class="hero-section">
+                <p class="login-title">Member Login</p>
+                <input type="text" placeholder="Account" id="u-acc" class="login-input">
+                <input type="password" placeholder="Password" id="u-pwd" class="login-input">
+                <button id="login-btn" class="btn-login">LOGIN</button>
+                <button id="register-trigger-btn" class="btn-ghost register-trigger-btn">REGISTER</button>
             </div>
-            <div class="cup-track" id="cup-grid"></div>
-            <p style="font-size:10px; opacity:0.4; margin-top:20px;">* Buy 9 cups and the 10th one is free.</p>
-        </div>
-        <div id="orderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
-            <div style="background:#fff;width:90%;max-width:380px;border-radius:16px;padding:20px;max-height:80vh;overflow-y:auto;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-                    <h3 style="margin:0;">Order Detail</h3>
-                    <button onclick="closeOrderModal()" style="border:none;background:none;font-size:20px;cursor:pointer;">×</button>
+
+            <!-- Register Modal -->
+            <div id="register-modal" class="modal-overlay">
+                <div class="register-modal-content">
+                    <div class="register-header">
+                        <h2 class="register-title">Create Account</h2>
+                        <button class="register-close">&times;</button>
+                    </div>
+                    
+                    <div class="register-form-group">
+                        <label class="register-label">Account</label>
+                        <input id="register-acc" type="text" placeholder="Enter your account" class="register-input">
+                        <div id="register-acc-error" class="register-error"></div>
+                    </div>
+                    
+                    <div class="register-form-group">
+                        <label class="register-label">Password</label>
+                        <input id="register-pwd" type="password" placeholder="Enter your password" class="register-input">
+                        <div id="register-pwd-error" class="register-error"></div>
+                    </div>
+                    
+                    <div class="register-form-group">
+                        <label class="register-label">Confirm Password</label>
+                        <input id="register-confirm-pwd" type="password" placeholder="Confirm your password" class="register-input">
+                        <div id="register-confirm-error" class="register-error"></div>
+                    </div>
+                    
+                    <button id="register-submit-btn" class="register-submit-btn">REGISTER</button>
+                    <button id="register-cancel-btn" class="register-cancel-btn">Cancel</button>
                 </div>
-                <div id="modalItems" style="border-top:1px solid #eee;padding-top:10px;"></div>
-                <div style="margin-top:15px;padding-top:10px;border-top:1px solid #eee;font-weight:bold;text-align:right;"></div>
             </div>
-        </div>
-        <div style="display:inline-block; background:#ffffff; color:#1b6d19; border:2px solid #2E7D32; padding:6px 14px; border-radius:12px; font-size:14px; font-weight:800; margin:30px 0 15px;">
-    Pending Orders
-</div>
-        <div id="pending-orders" style="font-size: 13px; color: #999;"> no pending orders</div>
-        <div style="display:inline-block; background:#ffffff; color:#000; border:2px solid #000; padding:6px 14px; border-radius:12px; font-size:14px; font-weight:800; margin:30px 0 15px;">
-    Orders history
-</div>
-        <div id="orders-box" style="font-size: 13px; color: #999;">No record found.</div>
-    </div>
-</div>
 
-<div class="float-pay" id="pay-bar">
-    <div style="font-size:14px; font-weight:800;">Bag · <span id="cart-q">0</span> Cups</div>
-    <div onclick="checkout()" style="cursor:pointer; font-weight:900;">
-        Checkout £<span id="cart-p">0.00</span> <i class="fa-solid fa-arrow-right"></i></div>
-</div>
-<div style="position:fixed; 
-inset:0; 
-background:rgba(0,0,0,0.4); 
-display:none; z-index:100;" 
-id="mask" onclick="closeDrawer()">
-</div>
-   <div style="position:fixed; 
-     bottom:-100%; left:0; width:100%;  
-background:rgba(255,255,255,0.97); 
-backdrop-filter:blur(12px); 
-border-radius:30px 30px 0 0; 
-padding:35px 25px; 
-z-index:101; 
-transition:0.4s cubic-bezier(0,1,0,1); 
-overflow-y:auto;
- -webkit-overflow-scrolling:touch;" 
-      id="drawer">
+            <!-- Member Card (Hidden by default) -->
+            <div class="member-card" id="member-ui" style="display:none;">
+                <div class="member-card-header">
+                    <span class="member-card-title">COFFEE PASS</span>
+                    <span id="cup-text" class="cup-count">0/10</span>
+                </div>
+                <div class="cup-track" id="cup-grid"></div>
+                <p class="cup-note">* Buy 9 cups and the 10th one is free.</p>
+            </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 id="d-name" style="margin:0; font-size:24px;">Coffee</h2>
-        <span id="d-price" style="font-size:22px; font-weight:900;">£0.00</span>
-    </div>
+            <!-- Order Detail Modal -->
+            <div id="orderModal" class="modal-overlay" style="display:none;">
+                <div class="order-modal-content">
+                    <div class="order-modal-header">
+                        <h3 class="order-modal-title">Order Detail</h3>
+                        <button class="order-modal-close">&times;</button>
+                    </div>
+                    <div id="modalItems" class="order-modal-items"></div>
+                    <div class="order-modal-footer"></div>
+                </div>
+            </div>
 
-    <p class="config-label">Milk Options</p>
-    <div class="opt-grid">
-        <button class="opt-btn active" onclick="setOpt(this,'milk')">Whole Milk</button>
-        <button class="opt-btn" onclick="setOpt(this,'milk')">Oat Milk</button>
-        <button class="opt-btn" onclick="setOpt(this,'milk')">Skimmed Milk</button>
-        <button class="opt-btn" onclick="setOpt(this,'milk')">Coconut Milk</button>
-        <button class="opt-btn" onclick="setOpt(this,'milk')">No Milk</button>
-    </div>
+            <!-- Pending Orders Section -->
+            <div class="section-label pending-label">Pending Orders</div>
+            <div id="pending-orders" class="orders-container">No pending orders</div>
 
-    <div class="config-group">
-        <span class="config-label">Sugar Level</span>
-        <div class="opt-grid">
-            <button class="opt-btn active" onclick="setOpt(this,'sugar')">No Sugar</button>
-            <button class="opt-btn" onclick="setOpt(this,'sugar')">30% Sugar</button>
-            <button class="opt-btn" onclick="setOpt(this,'sugar')">50% Sugar</button>
-            <button class="opt-btn" onclick="setOpt(this,'sugar')">100% Sugar</button>
+            <!-- Order History Section -->
+            <div class="section-label history-label">Orders history</div>
+            <div id="orders-box" class="orders-container">No record found.</div>
         </div>
     </div>
 
-    <div class="config-group">
-        <span class="config-label">Cup Size</span>
-        <div class="opt-grid" id="size-box">
+    <!-- Floating Payment Bar -->
+    <div class="float-pay" id="pay-bar" style="display: none;">
+        <div class="pay-info">
+            <b class="pay-item-count">0 items</b> 
+            <span class="pay-sub">£0.00</span>
+        </div>
+        <div class="pay-buttons">
+            <button id="view-cart-btn" class="pay-btn">View Cart</button>
+            <button id="checkout-btn" class="pay-btn">Checkout</button>
         </div>
     </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:30px; padding-top:20px; border-top:1px solid #f6f6f6;">
-        <span style="font-weight:800; font-size:14px;">Arrival Time</span>
-        <input type="time" id="p-time" style="border:1px solid #eee; padding:8px; border-radius:10px; font-weight:800;">
-    </div>
+    <!-- Mask Overlay -->
+    <div id="mask" class="mask-overlay" style="display: none;"></div>
 
+    <!-- Product Drawer -->
+    <div id="drawer" class="product-drawer" style="bottom: -100%;"></div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
-        <span style="font-weight:800; font-size:14px;">Quantity</span>
-        <div style="display:flex; align-items:center; gap:20px;">
-            <button onclick="qty(-1)" style="width:36px; height:36px; border:2px solid #000; border-radius:50%; background:none; font-weight:900;">-
-
-            </button>
-            <span id="q-val" style="font-size:20px; font-weight:900;">1</span>
-            <button onclick="qty(1)" 
-            style="width:36px; 
-            height:36px; 
-            border:2px solid #000; 
-            border-radius:50%; 
-            background:none; 
-            font-weight:900;">+</button>
+    <!-- Bottom Navigation -->
+    <div class="nav-bar">
+        <div class="nav-item active" data-page="pg-order">
+            <i class="fa-solid fa-mug-hot"></i>
+            <span>HomePage</span>
+        </div>
+        <div class="nav-item" data-page="pg-record">
+            <i class="fa-solid fa-id-card-clip"></i>
+            <span>Me</span>
         </div>
     </div>
 
-    <button class="btn-black" onclick="addBag()" style="margin-top:35px;">ADD TO BAG</button>
-</div>
-
-<div id="menu-items"></div>
-<div id="drawer" style="bottom: -100%;"></div>
-<div id="mask" style="display: none;"></div>
-<div id="orderModal" class="modal-overlay" style="display: none;">
-    <div class="cart-modal-content">
-        <div class="cart-header">
-            <h3 class="cart-title">Order Details</h3>
-            <button onclick="closeOrderModal()" class="cart-close">×</button>
-        </div>
-        <div id="modalItems"></div>
-    </div>
-</div>
-
-
-<div class="nav-bar">
-    <div class="nav-item active" onclick="navTo('pg-order')"><i class="fa-solid fa-mug-hot"></i>HomePage</div>
-    <div class="nav-item" onclick="navTo('pg-record')"><i class="fa-solid fa-id-card-clip"></i>Me</div>
-</div>
-
-<script src="JS/customer.js"></script>
+    <!-- Scripts (Load in order) -->
+    <script src="JS/utils.js"></script>
+    <script src="JS/state.js"></script>
+    <script src="JS/api.js"></script>
+    <script src="JS/customer.js"></script>
 </body>
 </html>

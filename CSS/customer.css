@@ -1321,3 +1321,192 @@ color: #ffffff;
     opacity: 0.9;
 }
 .cup-item.filled { background: #ffd700 !important; }
+/* ==================== 新增：补充HTML中用到的类 ==================== */
+.loc-select-icon {
+    font-size: 10px;
+    color: #ccc;
+}
+
+.train-info {
+    padding: 10px 20px;
+    background: white;
+    font-size: 12px;
+}
+
+.login-title {
+    margin: 0 0 20px 0;
+    font-weight: 800;
+}
+
+.login-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #fff;
+    color: #000;
+    border: 2px solid #000;
+    border-radius: 18px;
+    font-weight: 800;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-login:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.section-label {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 800;
+    margin: 30px 0 15px;
+}
+
+.pending-label {
+    background: #ffffff;
+    color: #1b6d19;
+    border: 2px solid #2E7D32;
+}
+
+.history-label {
+    background: #ffffff;
+    color: #000;
+    border: 2px solid #000;
+}
+
+.orders-container {
+    font-size: 13px;
+    color: #999;
+}
+
+.member-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.member-card-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.cup-count {
+    font-size: 12px;
+    color: var(--hey-gold);
+}
+
+.cup-track {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.cup-note {
+    font-size: 10px;
+    opacity: 0.4;
+    margin-top: 20px;
+}
+
+.register-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.register-title {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.register-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.order-modal-content {
+    background: #fff;
+    width: 90%;
+    max-width: 380px;
+    border-radius: 16px;
+    padding: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.order-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.order-modal-title {
+    margin: 0;
+}
+
+.order-modal-close {
+    border: none;
+    background: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.order-modal-items {
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+.order-modal-footer {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-weight: bold;
+    text-align: right;
+}
+
+.mask-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    z-index: 100;
+}
+
+.product-drawer {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    width: 100%;
+    height: 65vh;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(12px);
+    z-index: 101;
+    border-radius: 30px 30px 0 0;
+    padding: 35px 25px;
+    transition: 0.4s cubic-bezier(0,1,0,1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.08);
+}

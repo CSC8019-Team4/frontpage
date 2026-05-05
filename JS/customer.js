@@ -1,122 +1,111 @@
-const API_BASE = 'http://localhost:8080';
-const KEY_CUSTOMER_ORDERS = 'ws_customer_order_ids';
-const KEY_CUP_COUNT = 'ws_cup_count';
-const FREE_CUP_THRESHOLD = 10;
+/**
+ * Main Application Logic
+ * Initializes the app and wires up all event listeners
+ */
 
-function showInlineError(element, message) {
-    const err = document.createElement('div');
-    err.style.color = '#ff3b30';
-    err.style.fontSize = '12px';
-    err.style.margin = '4px 0';
-    err.textContent = message;
-    element.appendChild(err);
-    setTimeout(() => err.remove(), 2500);
+// ==========================================
+// Initialization - Runs when DOM is ready
+// ==========================================
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+});
+
+function initializeApp() {
+    // Load initial data
+    updateTime();
+    loadMenu();
+    refreshCustomerOrders();
+    loadTrainBoard();
+    loadCupCount();
+    
+    // Setup periodic updates
+    setInterval(updateTime, 60000);
+    setInterval(refreshCustomerOrders, 10000);
+    setInterval(loadTrainBoard, 60000);
+    
+    // Setup all event listeners
+    setupEventListeners();
 }
 
-const fallbackMenu = [
-    {
-        id: 1,
-        name: 'Americano',
-        regularPrice: 1.50,
-        largePrice: 2.00,
-        supportsMilk: false,
-        supportsSugar: true,
-        supportsLarge: true,
-        img: 'https://qcloud.dpfile.com/pc/ubxJ-VNoyN4uOfTBepm1tCeKrZ0UPsS5TWmMGkZvPbK86DRaYKVlOfP__9y-SpoC.jpg'
-    },
-    {
-        id: 2,
-        name: 'Americano with milk',
-        regularPrice: 2.00,
-        largePrice: 2.50,
-        supportsMilk: true,
-        supportsSugar: true,
-        supportsLarge: true,
-        img: 'https://miaobi-lite.bj.bcebos.com/miaobi/5mao/b%275ZKW5ZWh54mb5aW2XzE3MzU1MTIyNTMuMTMyNDI5OF8xNzM1NTEyMjUzLjUxNDA2OQ%3D%3D%27/1.png'
-    },
-    {
-        id: 3,
-        name: 'Latte',
-        regularPrice: 2.50,
-        largePrice: 3.00,
-        supportsMilk: true,
-        supportsSugar: true,
-        supportsLarge: true,
-        img: 'https://preview.qiantucdn.com/58pic/vj/HJ/QS/7A/7r1oqpv3yzd6h49xlm2ntisw0k8j5ucf_PIC2018.png!w1024_new_small_1'
-    },
-    {
-        id: 4,
-        name: 'Cappuccino',
-        regularPrice: 2.50,
-        largePrice: 3.00,
-        supportsMilk: true,
-        supportsSugar: true,
-        supportsLarge: true,
-        img: 'https://inews.gtimg.com/newsapp_bt/0/12407295198/1000.jpg'
-    },
-    {
-        id: 5,
-        name: 'Hot Chocolate',
-        regularPrice: 2.00,
-        largePrice: 2.50,
-        supportsMilk: true,
-        supportsSugar: true,
-        supportsLarge: true,
-        img: 'https://gips3.baidu.com/it/u=1743325701,3884706280&fm=3074&app=3074&f=JPEG'
-    },
-    {
-        id: 6,
-        name: 'Mocha',
-        regularPrice: 2.50,
-        largePrice: 3.00,
-        supportsMilk: true,
-        supportsSugar: true,
-        supportsLarge: true,
-        img: 'https://5b0988e595225.cdn.sohucs.com/a_auto,c_cut,x_2,y_0,w_825,h_550/images/20190129/bc09903321a640c581236122a1b7123c.jpeg'
-    },
-    {
-        id: 7,
-        name: 'Mineral Water',
-        regularPrice: 1.00,
-        largePrice: null,
-        supportsMilk: false,
-        supportsSugar: false,
-        supportsLarge: false,
-        img: 'https://pic.rmb.bdstatic.com/c61e5447d36ae72409dbefb59aedac28@h_1280'
+function setupEventListeners() {
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const pageId = this.getAttribute('data-page');
+            navTo(pageId);
+        });
+    });
+    
+    // Mask click to close drawer
+    const mask = document.getElementById('mask');
+    if (mask) {
+        mask.addEventListener('click', closeDrawer);
     }
-];
-
-let menu = [...fallbackMenu];
-let state = {
-    bag: [],
-    curr: null,
-    q: 1,
-    bp: 0,
-    cupCount: 0,
-    selectedSize: 'REGULAR',
-    paymentMethod: 'CARD',
-    pendingOrders: [],
-    history: [],
-    isLogin: false
-};
-
-
-async function apiFetch(path, options = {}) {
-    const response = await fetch(`${API_BASE}${path}`, options);
-    if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`${response.status} ${body}`);
+    
+    // Login button
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', login);
     }
-    return response.status === 204 ? null : response.json();
+    
+    // Register trigger
+    const registerTriggerBtn = document.getElementById('register-trigger-btn');
+    if (registerTriggerBtn) {
+        registerTriggerBtn.addEventListener('click', openRegisterModal);
+    }
+    
+    // Register modal close
+    const registerClose = document.querySelector('.register-close');
+    if (registerClose) {
+        registerClose.addEventListener('click', closeRegisterModal);
+    }
+    
+    const registerCancelBtn = document.getElementById('register-cancel-btn');
+    if (registerCancelBtn) {
+        registerCancelBtn.addEventListener('click', closeRegisterModal);
+    }
+    
+    // Register submit
+    const registerSubmitBtn = document.getElementById('register-submit-btn');
+    if (registerSubmitBtn) {
+        registerSubmitBtn.addEventListener('click', createAccount);
+    }
+    
+    // Order modal close
+    const orderModalClose = document.querySelector('.order-modal-close');
+    if (orderModalClose) {
+        orderModalClose.addEventListener('click', closeOrderModal);
+    }
+    
+    // View cart button
+    const viewCartBtn = document.getElementById('view-cart-btn');
+    if (viewCartBtn) {
+        viewCartBtn.addEventListener('click', openCart);
+    }
+    
+    // Checkout button (floating bar)
+    const checkoutBtn = document.getElementById('checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', function() {
+            if (!document.getElementById('checkout-modal')) {
+                openCheckoutModal();
+            } else {
+                checkout();
+            }
+        });
+    }
 }
 
+// ==========================================
+// Time & Opening Hours Logic
+// ==========================================
 function updateTime() {
     const n = new Date();
     const d = n.getDay();
     const h = n.getHours() + n.getMinutes() / 60;
     let range = '';
     let open = false;
-
+    
     if (d >= 1 && d <= 5) {
         range = '06:30-19:00';
         open = h >= 6.5 && h < 19;
@@ -126,166 +115,193 @@ function updateTime() {
     } else {
         range = 'Closed';
     }
-
+    
     const box = document.getElementById('timeBox');
     if (box) {
         box.innerHTML = `<span class="status-dot ${open ? 'dot-open' : 'dot-close'}"></span>${open ? 'Open' : 'Closed'}<br>${range}`;
     }
 }
 
+// ==========================================
+// Menu Logic
+// ==========================================
 async function loadMenu() {
     try {
-        const backendMenu = await apiFetch('/api/menu');
-        menu = backendMenu.map(item => {
-            const fallback = fallbackMenu.find(i =>
-                i.name.toLowerCase() === String(item.name).toLowerCase()
-            );
-
-            return {
-                id: item.id,
-                name: item.name,
-                regularPrice: Number(item.regularPrice),
-                largePrice: item.largePrice == null ? null : Number(item.largePrice),
-                supportsMilk: fallback?.supportsMilk ?? true,
-                supportsSugar: fallback?.supportsSugar ?? true,
-                supportsLarge: fallback?.supportsLarge ?? item.largePrice != null,
-                img: imageForItem(item.name)
-            };
-        });
+        menu = await fetchMenuFromBackend();
     } catch (error) {
-        console.warn('Using fallback menu because backend menu failed:', error.message);
+        console.warn('Using fallback menu:', error.message);
         menu = [...fallbackMenu];
     }
     renderMenu();
 }
 
-function imageForItem(name) {
-    const fallback = fallbackMenu.find(i => i.name.toLowerCase() === String(name).toLowerCase());
-    return fallback?.img || 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=200&fit=crop';
-}
-
 function renderMenu() {
-
     const menuBox = document.getElementById('menu-items');
     if (!menuBox) return;
+    
     menuBox.innerHTML = menu.map(item => `
-    <div class="menu-card" onclick="openDrawer(${item.id})">
-      <div class="menu-img-container">
-        <img src="${item.img}" alt="${item.name}" class="menu-img">
-      </div>
-      <div class="menu-name">${item.name}</div>
-      <div class="menu-price">£${Number(item.regularPrice).toFixed(2)}</div>
-    </div>
-  `).join('');
+        <div class="menu-card" data-menu-id="${item.id}">
+            <div class="menu-img-container">
+                <img src="${item.img}" alt="${item.name}" class="menu-img">
+            </div>
+            <div class="menu-name">${item.name}</div>
+            <div class="menu-price">£${Number(item.regularPrice).toFixed(2)}</div>
+        </div>
+    `).join('');
+    
+    // Add click listeners to menu cards
+    menuBox.querySelectorAll('.menu-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const menuId = parseInt(this.getAttribute('data-menu-id'));
+            openDrawer(menuId);
+        });
+    });
 }
 
+// ==========================================
+// Navigation Logic
+// ==========================================
 function navTo(id) {
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
     document.getElementById(id)?.classList.add('active');
-
+    
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    if (window.event?.currentTarget) window.event.currentTarget.classList.add('active');
-
+    const activeNav = document.querySelector(`.nav-item[data-page="${id}"]`);
+    if (activeNav) activeNav.classList.add('active');
+    
     if (id === 'pg-record') {
         refreshCustomerOrders();
     }
 }
 
-
+// ==========================================
+// Drawer Logic
+// ==========================================
 function openDrawer(menuItemId) {
-    state.curr = menu.find(item => item.id === menuItemId);
-    if (!state.curr) return;
-    state.q = 1;
-    state.bp = Number(state.curr.regularPrice);
-    state.selectedSize = 'REGULAR';
-    const milkOptionsHtml = state.curr.supportsMilk ? `
+    appState.curr = menu.find(item => item.id === menuItemId);
+    if (!appState.curr) return;
+    
+    appState.q = 1;
+    appState.bp = Number(appState.curr.regularPrice);
+    appState.selectedSize = 'REGULAR';
+    
+    const milkOptionsHtml = appState.curr.supportsMilk ? `
         <p class="config-label">Milk options</p>
         <div class="opt-grid" id="milk-options">
-          <button class="opt-btn active" onclick="setOpt(this,'milk')">Whole Milk</button>
-          <button class="opt-btn" onclick="setOpt(this,'milk')">Oat Milk</button>
-          <button class="opt-btn" onclick="setOpt(this,'milk')">Skimmed Milk</button>
-          <button class="opt-btn" onclick="setOpt(this,'milk')">Coconut Milk</button>
-          <button class="opt-btn" onclick="setOpt(this,'milk')">No Milk</button>
+            <button class="opt-btn active" data-type="milk" data-value="Whole Milk">Whole Milk</button>
+            <button class="opt-btn" data-type="milk" data-value="Oat Milk">Oat Milk</button>
+            <button class="opt-btn" data-type="milk" data-value="Skimmed Milk">Skimmed Milk</button>
+            <button class="opt-btn" data-type="milk" data-value="Coconut Milk">Coconut Milk</button>
+            <button class="opt-btn" data-type="milk" data-value="No Milk">No Milk</button>
         </div>
     ` : '';
-
- 
-    const sugarOptionsHtml = state.curr.supportsSugar ? `
+    
+    const sugarOptionsHtml = appState.curr.supportsSugar ? `
         <p class="config-label">Sugar level</p>
         <div class="opt-grid" id="sugar-options">
-          <button class="opt-btn active" onclick="setOpt(this,'sugar')">No Sugar</button>
-          <button class="opt-btn" onclick="setOpt(this,'sugar')">30% Sugar</button>
-          <button class="opt-btn" onclick="setOpt(this,'sugar')">50% Sugar</button>
-          <button class="opt-btn" onclick="setOpt(this,'sugar')">100% Sugar</button>
+            <button class="opt-btn active" data-type="sugar" data-value="No Sugar">No Sugar</button>
+            <button class="opt-btn" data-type="sugar" data-value="30% Sugar">30% Sugar</button>
+            <button class="opt-btn" data-type="sugar" data-value="50% Sugar">50% Sugar</button>
+            <button class="opt-btn" data-type="sugar" data-value="100% Sugar">100% Sugar</button>
         </div>
     ` : '';
-
-
+    
     const sizeOptionsHtml = `
         <p class="config-label">Cup size</p>
         <div class="opt-grid" id="size-box">
-          <button class="opt-btn active" onclick="selSize(this, ${Number(state.curr.regularPrice)}, 'REGULAR')">Regular</button>
-          ${state.curr.supportsLarge && state.curr.largePrice
-        ? `<button class="opt-btn" onclick="selSize(this, ${Number(state.curr.largePrice)}, 'LARGE')">Large</button>`
-        : ''}
+            <button class="opt-btn active" data-price="${Number(appState.curr.regularPrice)}" data-size="REGULAR">Regular</button>
+            ${appState.curr.supportsLarge && appState.curr.largePrice
+                ? `<button class="opt-btn" data-price="${Number(appState.curr.largePrice)}" data-size="LARGE">Large</button>`
+                : ''}
         </div>
     `;
-
+    
     const drawer = document.getElementById('drawer');
     drawer.innerHTML = `
-    <div class="drawer-container">
-      <div class="drawer-img-box">
-        <img src="${state.curr.img}" class="drawer-img">
-      </div>
-
-      <div class="drawer-info">
-        <div class="drawer-header">
-          <h2 id="d-name" class="drawer-title">${state.curr.name}</h2>
-          <span id="d-price" class="drawer-price">£${state.bp.toFixed(2)}</span>
+        <div class="drawer-container">
+            <div class="drawer-img-box">
+                <img src="${appState.curr.img}" class="drawer-img">
+            </div>
+            <div class="drawer-info">
+                <div class="drawer-header">
+                    <h2 id="d-name" class="drawer-title">${appState.curr.name}</h2>
+                    <span id="d-price" class="drawer-price">£${appState.bp.toFixed(2)}</span>
+                </div>
+                ${milkOptionsHtml}
+                ${sugarOptionsHtml}
+                ${sizeOptionsHtml}
+            </div>
+            <div class="drawer-actions">
+                <div class="drawer-row">
+                    <span class="drawer-label">Pickup Date</span>
+                    <input type="date" id="p-date" class="drawer-input" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                <div class="drawer-row">
+                    <span class="drawer-label">Pickup Time</span>
+                    <input type="time" id="p-time" class="drawer-input">
+                </div>
+                <div class="drawer-row">
+                    <span class="drawer-label">Pickup Station</span>
+                    <select id="pickup-station" class="drawer-input">
+                        <option value="Cramlington Station">Cramlington Station</option>
+                        <option value="Newcastle Station">Newcastle Station</option>
+                        <option value="Morpeth Station">Morpeth Station</option>
+                    </select>
+                </div>
+                <div class="drawer-row">
+                    <span class="drawer-label">Quantity</span>
+                    <div class="drawer-qty">
+                        <button class="qty-btn" data-action="qty" data-value="-1">-</button>
+                        <span id="q-val" class="qty-text">1</span>
+                        <button class="qty-btn" data-action="qty" data-value="1">+</button>
+                    </div>
+                </div>
+                <button class="btn-black" id="add-to-bag-btn">Add to bag</button>
+            </div>
         </div>
-
-        ${milkOptionsHtml}
-        ${sugarOptionsHtml}
-        ${sizeOptionsHtml}
-      </div>
-
-      <div class="drawer-actions">
-        <div class="drawer-row">
-          <span class="drawer-label">Pickup Date</span>
-          <input type="date" id="p-date" class="drawer-input" value="${new Date().toISOString().split('T')[0]}">
-        </div>
-        <div class="drawer-row">
-          <span class="drawer-label">Pickup Time</span>
-          <input type="time" id="p-time" class="drawer-input">
-        </div>
-
-        <div class="drawer-row">
-          <span class="drawer-label">Pickup Station</span>
-           <select id="pickup-station" class="drawer-input">
-           <option value="Cramlington Station">Cramlington Station</option>
-         <option value="Newcastle Station">Newcastle Station</option>
-         <option value="Morpeth Station">Morpeth Station</option>
-         </select>
-         </div>
-
-        <div class="drawer-row">
-          <span class="drawer-label">Quantity</span>
-          <div class="drawer-qty">
-            <button onclick="qty(-1)" class="qty-btn">-</button>
-            <span id="q-val" class="qty-text">1</span>
-            <button onclick="qty(1)" class="qty-btn">+</button>
-          </div>
-        </div>
-
-        <button class="btn-black" onclick="addBag()">Add to bag</button>
-      </div>
-    </div>`;
-
+    `;
     
+    // Setup drawer event listeners
+    setupDrawerListeners();
+    
+    // Show drawer
     document.getElementById('mask').style.display = 'block';
     setTimeout(() => drawer.style.bottom = '0', 10);
     
     updatePrice();
+}
+
+function setupDrawerListeners() {
+    // Option buttons (milk, sugar)
+    document.querySelectorAll('#drawer .opt-btn[data-type]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const type = this.getAttribute('data-type');
+            setOpt(this, type);
+        });
+    });
+    
+    // Size buttons
+    document.querySelectorAll('#size-box .opt-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const price = parseFloat(this.getAttribute('data-price'));
+            const size = this.getAttribute('data-size');
+            selSize(this, price, size);
+        });
+    });
+    
+    // Quantity buttons
+    document.querySelectorAll('#drawer .qty-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const value = parseInt(this.getAttribute('data-value'));
+            qty(value);
+        });
+    });
+    
+    // Add to bag button
+    const addToBagBtn = document.getElementById('add-to-bag-btn');
+    if (addToBagBtn) {
+        addToBagBtn.addEventListener('click', addBag);
+    }
 }
 
 function closeDrawer() {
@@ -297,8 +313,8 @@ function closeDrawer() {
 function selSize(el, price, size) {
     document.querySelectorAll('#size-box .opt-btn').forEach(item => item.classList.remove('active'));
     el.classList.add('active');
-    state.bp = Number(price);
-    state.selectedSize = size;
+    appState.bp = Number(price);
+    appState.selectedSize = size;
     updatePrice();
 }
 
@@ -309,48 +325,52 @@ function setOpt(el, type) {
 }
 
 function qty(v) {
-    state.q = Math.max(1, Math.min(20, state.q + v));
+    appState.q = Math.max(1, Math.min(20, appState.q + v));
     updatePrice();
 }
 
 function updatePrice() {
     const qVal = document.getElementById('q-val');
     const dPrice = document.getElementById('d-price');
-    if (qVal) qVal.innerText = state.q;
-    if (dPrice) dPrice.innerText = `£${(state.bp * state.q).toFixed(2)}`;
+    
+    if (qVal) qVal.innerText = appState.q;
+    if (dPrice) dPrice.innerText = `£${(appState.bp * appState.q).toFixed(2)}`;
 }
 
+// ==========================================
+// Shopping Bag Logic
+// ==========================================
 function addBag() {
     const pickDate = document.getElementById('p-date')?.value;
     const pickTime = document.getElementById('p-time')?.value;
     const station = document.getElementById('pickup-station').value;
-
+    
     if (!pickDate || !pickTime) {
         alert('Please select a pickup date and time.');
         return;
     }
-
-    const selectedMilk = state.curr.supportsMilk
-        ? document.querySelector('#milk-options .opt-btn.active')?.innerText
+    
+    const selectedMilk = appState.curr.supportsMilk
+        ? document.querySelector('#milk-options .opt-btn.active')?.getAttribute('data-value')
         : null;
-
-    const selectedSugar = state.curr.supportsSugar
-        ? document.querySelector('#sugar-options .opt-btn.active')?.innerText
+        
+    const selectedSugar = appState.curr.supportsSugar
+        ? document.querySelector('#sugar-options .opt-btn.active')?.getAttribute('data-value')
         : null;
-
-    state.bag.push({
-        menuItemId: state.curr.id,
-        name: state.curr.name,
-        p: state.bp,
-        q: state.q,
-        size: state.selectedSize,
+    
+    appState.bag.push({
+        menuItemId: appState.curr.id,
+        name: appState.curr.name,
+        p: appState.bp,
+        q: appState.q,
+        size: appState.selectedSize,
         milk: selectedMilk,
         sugar: selectedSugar,
         pickDate,
         pickTime,
         station  
     });
-
+    
     updateBag();
     closeDrawer();
 }
@@ -358,106 +378,149 @@ function addBag() {
 function updateBag() {
     const payBar = document.getElementById('pay-bar');
     if (!payBar) return;
-
-    if (state.bag.length === 0) {
+    
+    if (appState.bag.length === 0) {
         payBar.style.display = 'none';
         return;
     }
-
+    
     payBar.style.display = 'flex';
-    const totalQty = state.bag.reduce((sum, item) => sum + item.q, 0);
+    
+    const totalQty = appState.bag.reduce((sum, item) => sum + item.q, 0);
     const totalPrice = calculateOrderTotal();
-    payBar.innerHTML = `
-    <div class="pay-info">
-        <b>${totalQty} items</b> 
-        <span class="pay-sub">£${totalPrice}</span>
-    </div>
-    <div class="pay-buttons">
-      <button onclick="openCart()" class="pay-btn">View Cart</button>
-      <button onclick="checkout()" class="pay-btn">Checkout</button>
-    </div>`;
+    
+    const itemCountEl = payBar.querySelector('.pay-item-count');
+    const priceEl = payBar.querySelector('.pay-sub');
+    
+    if (itemCountEl) itemCountEl.innerText = `${totalQty} items`;
+    if (priceEl) priceEl.innerText = `£${totalPrice}`;
 }
 
-
+// ==========================================
+// Cart Modal Logic
+// ==========================================
 function openCart() {
-    if (state.bag.length === 0) {
+    if (appState.bag.length === 0) {
         alert('Your cart is empty.');
         return;
     }
+    
+    // Remove existing modal if any
     const existing = document.getElementById('cart-modal');
     if (existing) existing.remove();
-
+    
     const totalPrice = calculateOrderTotal();
-
- 
+    
     const cartModal = document.createElement('div');
     cartModal.id = 'cart-modal';
     cartModal.className = 'modal-overlay';
-
     cartModal.innerHTML = `
-    <div class="cart-modal-content">
-      <div class="cart-header">
-        <h3 class="cart-title">Your Cart</h3>
-        <button onclick="closeCart()" class="cart-close">×</button>
-      </div>
-      
-      ${state.bag.map((item, idx) => `
-        <div class="cart-item">
-          <div class="cart-item-left">
-            <div class="cart-item-name">${item.name}</div>
-            <div class="cart-item-desc">
-                ${[item.size, item.milk, item.sugar, `Station: ${item.station} | Pickup: ${item.pickTime}`].filter(Boolean).join(' | ')}
+        <div class="cart-modal-content">
+            <div class="cart-header">
+                <h3 class="cart-title">Your Cart</h3>
+                <button class="cart-close">&times;</button>
             </div>
-            <div class="cart-item-price">£${item.p.toFixed(2)}/item</div>
-          </div>
-          <div class="cart-item-right">
-            <button onclick="updateCartQty(${idx}, -1)">-</button>
-            <span>${item.q}</span>
-            <button onclick="updateCartQty(${idx}, 1)">+</button>
-            <button onclick="removeCartItem(${idx})" class="cart-remove">Remove</button>
-          </div>
-        </div>`).join('')}
-      
-      <div class="cart-footer">
-        <div class="cart-total-row">
-          <span>Total</span>
-          <span>£${totalPrice}</span>
+            
+            ${appState.bag.map((item, idx) => `
+                <div class="cart-item" data-index="${idx}">
+                    <div class="cart-item-left">
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-desc">
+                            ${[item.size, item.milk, item.sugar, `Station: ${item.station} | Pickup: ${item.pickTime}`].filter(Boolean).join(' | ')}
+                        </div>
+                        <div class="cart-item-price">£${item.p.toFixed(2)}/item</div>
+                    </div>
+                    <div class="cart-item-right">
+                        <button class="cart-qty-btn" data-action="update" data-index="${idx}" data-value="-1">-</button>
+                        <span>${item.q}</span>
+                        <button class="cart-qty-btn" data-action="update" data-index="${idx}" data-value="1">+</button>
+                        <button class="cart-remove" data-action="remove" data-index="${idx}">Remove</button>
+                    </div>
+                </div>
+            `).join('')}
+            
+            <div class="cart-footer">
+                <div class="cart-total-row">
+                    <span>Total</span>
+                    <span>£${totalPrice}</span>
+                </div>
+                <button class="btn-black" id="cart-checkout-btn">Checkout</button>
+            </div>
         </div>
-        <button onclick="openCheckoutModal()" class="btn-black">Checkout</button>
-      </div>
-    </div>`;
+    `;
+    
     document.body.appendChild(cartModal);
+    setupCartListeners(cartModal);
 }
 
+function setupCartListeners(modal) {
+    // Close button
+    const closeBtn = modal.querySelector('.cart-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeCart);
+    }
+    
+    // Quantity and remove buttons
+    modal.querySelectorAll('.cart-qty-btn, .cart-remove').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const action = this.getAttribute('data-action');
+            const index = parseInt(this.getAttribute('data-index'));
+            const value = parseInt(this.getAttribute('data-value') || 0);
+            
+            if (action === 'update') {
+                updateCartQty(index, value);
+            } else if (action === 'remove') {
+                removeCartItem(index);
+            }
+        });
+    });
+    
+    // Checkout button
+    const checkoutBtn = modal.querySelector('#cart-checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', openCheckoutModal);
+    }
+}
 
 function closeCart() {
     document.getElementById('cart-modal')?.remove();
 }
 
+function updateCartQty(idx, val) {
+    appState.bag[idx].q = Math.max(1, Math.min(20, appState.bag[idx].q + val));
+    updateBag();
+    closeCart();
+    openCart();
+}
 
+function removeCartItem(idx) {
+    appState.bag.splice(idx, 1);
+    updateBag();
+    closeCart();
+    if (appState.bag.length > 0) openCart();
+}
+
+// ==========================================
+// Checkout Logic
+// ==========================================
 function openCheckoutModal() {
-
-    if (state.bag.length === 0) {
+    if (appState.bag.length === 0) {
         alert('Your cart is empty.');
         return;
     }
-
- 
+    
     closeCart();
-
- 
+    
+    // Remove existing modal if any
     const existing = document.getElementById('checkout-modal');
     if (existing) existing.remove();
-
-
-   const totalPrice = calculateOrderTotal();
-
- 
+    
+    const totalPrice = calculateOrderTotal();
+    
     const checkoutModal = document.createElement('div');
     checkoutModal.id = 'checkout-modal';
     checkoutModal.className = 'checkout-modal-overlay';
-
-  
+    
     checkoutModal.innerHTML = `
         <div class="checkout-modal-content">
             <div class="checkout-header">
@@ -465,132 +528,133 @@ function openCheckoutModal() {
                     <h2 class="checkout-title">Checkout</h2>
                     <p class="checkout-desc">Confirm your details and payment method.</p>
                 </div>
-                <button onclick="closeCheckoutModal()" class="checkout-close">×</button>
+                <button class="checkout-close">&times;</button>
             </div>
-
             <div class="checkout-form-group">
                 <label class="config-label">Customer name</label>
                 <input id="checkout-name" type="text" placeholder="Enter your name" class="checkout-input">
                 <div id="name-error" style="color:#ff3b30;font-size:12px;margin-top:4px;"></div>
             </div>
-
             <div class="checkout-form-group">
                 <label class="config-label">Email address</label>
                 <input id="checkout-email" type="email" placeholder="Enter your email" class="checkout-input">
                 <div id="email-error" style="color:#ff3b30;font-size:12px;margin-top:4px;"></div>
             </div>
-
             <div class="checkout-form-group">
                 <label class="config-label">Payment method</label>
                 <div class="payment-grid">
-                    <button
-                        id="pay-card"
-                        onclick="setPaymentMethod('CARD')"
-                        class="payment-btn active"
-                        type="button">
-                        Card
-                    </button>
-                    <button
-                        id="pay-cash"
-                        onclick="setPaymentMethod('CASH')"
-                        class="payment-btn"
-                        type="button">
-                        Cash
-                    </button>
+                    <button id="pay-card" class="payment-btn active" data-method="CARD">Card</button>
+                    <button id="pay-cash" class="payment-btn" data-method="CASH">Cash</button>
                 </div>
             </div>
-
             <div class="checkout-summary">
                 <div class="summary-total">
                     <span>Total</span>
                     <span>£${totalPrice}</span>
                 </div>
                 <div class="summary-info">
-                    ${state.bag.length} item${state.bag.length === 1 ? '' : 's'} in your order
+                    ${appState.bag.length} item${appState.bag.length === 1 ? '' : 's'} in your order
                 </div>
             </div>
-
-            <button onclick="checkout()" class="btn-black checkout-full-btn">
-                Place order
-            </button>
-
-            <button onclick="closeCheckoutModal()" class="checkout-cancel-btn">
-                Cancel
-            </button>
+            <button class="btn-black checkout-full-btn" id="place-order-btn">Place order</button>
+            <button class="checkout-cancel-btn" id="checkout-cancel-btn">Cancel</button>
         </div>
     `;
+    
     document.body.appendChild(checkoutModal);
+    setupCheckoutListeners(checkoutModal);
+}
+
+function setupCheckoutListeners(modal) {
+    // Close button
+    const closeBtn = modal.querySelector('.checkout-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeCheckoutModal);
+    }
+    
+    const cancelBtn = modal.querySelector('#checkout-cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeCheckoutModal);
+    }
+    
+    // Payment method buttons
+    modal.querySelectorAll('.payment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const method = this.getAttribute('data-method');
+            setPaymentMethod(method);
+        });
+    });
+    
+    // Place order button
+    const placeOrderBtn = modal.querySelector('#place-order-btn');
+    if (placeOrderBtn) {
+        placeOrderBtn.addEventListener('click', checkout);
+    }
 }
 
 function closeCheckoutModal() {
     document.getElementById('checkout-modal')?.remove();
 }
 
-function updateCartQty(idx, val) {
-    state.bag[idx].q = Math.max(1, Math.min(20, state.bag[idx].q + val));
-    updateBag();
-    closeCart();
-    openCart();
+function setPaymentMethod(method) {
+    appState.paymentMethod = method;
+    document.querySelectorAll('.payment-btn').forEach(button => {
+        button.classList.remove('active');
+    });
+    if (method === 'CARD') {
+        document.getElementById('pay-card')?.classList.add('active');
+    }
+    if (method === 'CASH') {
+        document.getElementById('pay-cash')?.classList.add('active');
+    }
 }
-
-function removeCartItem(idx) {
-    state.bag.splice(idx, 1);
-    updateBag();
-    closeCart();
-    if (state.bag.length > 0) openCart();
-}
-
-function buildPickupDateTime(pickDate, pickTime) {
-    if (!pickDate || !pickTime) return null;
-    const [y, m, d] = pickDate.split('-').map(Number);
-    const [hours, minutes] = pickTime.split(':').map(Number);
-    const pickup = new Date(y, m - 1, d, hours, minutes);
-    const yyyy = pickup.getFullYear();
-    const mm = String(pickup.getMonth() + 1).padStart(2, '0');
-    const dd = String(pickup.getDate()).padStart(2, '0');
-    const hh = String(pickup.getHours()).padStart(2, '0');
-    const min = String(pickup.getMinutes()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
-}
-
 
 async function checkout() {
-    if (!document.getElementById('checkout-modal')) {
+    const checkoutModal = document.getElementById('checkout-modal');
+    
+    if (!checkoutModal) {
         openCheckoutModal();
         return;
     }
-    if (state.bag.length === 0) {
+    
+    if (appState.bag.length === 0) {
         alert('Shopping bag is empty.');
         return;
     }
+    
     const customerName = document.getElementById('checkout-name')?.value.trim();
     const customerEmail = document.getElementById('checkout-email')?.value.trim();
     const nameErr = document.getElementById('name-error');
     const emailErr = document.getElementById('email-error');
-
-    nameErr.textContent = '';
-    emailErr.textContent = '';
-
+    
+    // Clear previous errors
+    if (nameErr) nameErr.textContent = '';
+    if (emailErr) emailErr.textContent = '';
+    
+    // Validation
     if (!customerName) {
-        nameErr.textContent = 'Please enter your full name.';
+        if (nameErr) nameErr.textContent = 'Please enter your full name.';
         return;
     }
+    
     if (!customerEmail) {
-        emailErr.textContent = 'Please enter your email address.';
+        if (emailErr) emailErr.textContent = 'Please enter your email address.';
         return;
     }
+    
     if (!customerEmail.includes('@')) {
-        emailErr.textContent = 'Please enter a valid email address.';
+        if (emailErr) emailErr.textContent = 'Please enter a valid email address.';
         return;
     }
-    const firstItem = state.bag[0];
+    
+    // Check opening hours
+    const firstItem = appState.bag[0];
     const { pickDate, pickTime } = firstItem;
-
     const checkDate = new Date(pickDate);
     const day = checkDate.getDay();
     const [h, m] = pickTime.split(':').map(Number);
     const timeNum = h + m / 60;
-
+    
     let isOpen = false;
     if (day >= 1 && day <= 5) {
         isOpen = timeNum >= 6.5 && timeNum < 19;
@@ -599,124 +663,106 @@ async function checkout() {
     } else {
         isOpen = false;
     }
-
+    
     if (!isOpen) {
         alert('Sorry, the kiosk is closed at this pickup time.\n\nMon-Fri: 06:30-19:00\nSat: 07:00-18:00\nSun: Closed');
         return;
     }
-
-  const orderPayload = {
-    customerName,
-    customerEmail,
-    pickupTime: buildPickupDateTime(firstItem.pickDate, firstItem.pickTime),
-    station: firstItem.station,
-    paymentMethod: state.paymentMethod,
-    totalCost: parseFloat(calculateOrderTotal()), 
-    isFreeCup: hasFreeCup(),
-    discountAmount: hasFreeCup() ? Math.min(...state.bag.map(item => item.p)) : 0,
-    items: state.bag.map(item => ({
-        menuItemId: item.menuItemId,
-        size: item.size,
-        quantity: item.q,
-        customisationNote: [
-            item.milk ? `Milk: ${item.milk}` : null,
-            item.sugar ? `Sugar: ${item.sugar}` : null
-        ].filter(Boolean).join('; ') || null
-    }))
-};
-
+    
+    // Build order payload
+    const orderPayload = {
+        customerName,
+        customerEmail,
+        pickupTime: buildPickupDateTime(firstItem.pickDate, firstItem.pickTime),
+        station: firstItem.station,
+        paymentMethod: appState.paymentMethod,
+        totalCost: parseFloat(calculateOrderTotal()), 
+        isFreeCup: hasFreeCup(),
+        discountAmount: hasFreeCup() ? Math.min(...appState.bag.map(item => item.p)) : 0,
+        items: appState.bag.map(item => ({
+            menuItemId: item.menuItemId,
+            size: item.size,
+            quantity: item.q,
+            customisationNote: [
+                item.milk ? `Milk: ${item.milk}` : null,
+                item.sugar ? `Sugar: ${item.sugar}` : null
+            ].filter(Boolean).join('; ') || null
+        }))
+    };
+    
     try {
-        const savedOrder = await apiFetch('/api/orders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderPayload)
-        });
-
+        const savedOrder = await placeOrder(orderPayload);
+        
+        // Save order ID to local storage
         const ids = JSON.parse(localStorage.getItem(KEY_CUSTOMER_ORDERS) || '[]');
         ids.push(savedOrder.id);
         localStorage.setItem(KEY_CUSTOMER_ORDERS, JSON.stringify([...new Set(ids)]));
-
-        state.pendingOrders.push(savedOrder);
-        state.bag = [];
-        state.paymentMethod = 'CARD';
-
+        
+        appState.pendingOrders.push(savedOrder);
+        appState.bag = [];
+        appState.paymentMethod = 'CARD';
+        
         updateBag();
         closeCheckoutModal();
-
+        
+        // Update cup count
         const totalCups = orderPayload.items.reduce((sum, item) => sum + item.quantity, 0);
         addCupCount(totalCups);
+        
         alert(`Order placed successfully. Order #${savedOrder.id}`);
         navTo('pg-record');
-
+        
     } catch (error) {
         console.error(error);
         alert('Failed to place order. Please verify your information and try again.');
     }
 }
 
-
+// ==========================================
+// Order History Logic
+// ==========================================
 async function refreshCustomerOrders() {
     const ids = JSON.parse(localStorage.getItem(KEY_CUSTOMER_ORDERS) || '[]');
     const orders = [];
-
+    
     for (const id of ids) {
         try {
-            orders.push(await apiFetch(`/api/orders/${id}`));
+            orders.push(await fetchOrderById(id));
         } catch (error) {
             console.warn(`Could not load order ${id}`, error.message);
         }
     }
-
-    state.pendingOrders = orders.filter(order => !['COLLECTED', 'CANCELLED'].includes(order.status));
-    state.history = orders.filter(order => ['COLLECTED', 'CANCELLED'].includes(order.status));
+    
+    appState.pendingOrders = orders.filter(order => !['COLLECTED', 'CANCELLED'].includes(order.status));
+    appState.history = orders.filter(order => ['COLLECTED', 'CANCELLED'].includes(order.status));
+    
     renderPendingOrders();
     renderHistory();
-}
-
-function setPaymentMethod(method) {
-    state.paymentMethod = method;
-
-    document.querySelectorAll('.payment-btn').forEach(button => {
-        button.classList.remove('active');
-    });
-
-    if (method === 'CARD') {
-        document.getElementById('pay-card')?.classList.add('active');
-    }
-
-    if (method === 'CASH') {
-        document.getElementById('pay-cash')?.classList.add('active');
-    }
-}
-
-function loadOrderData() {
-    refreshCustomerOrders();
 }
 
 function renderHistory() {
     const box = document.getElementById('orders-box');
     if (!box) return;
-
-    if (!state.history.length) {
+    
+    if (!appState.history.length) {
         box.innerHTML = 'No record found.';
         return;
     }
-
-    box.innerHTML = state.history.map(order => renderOrderCard(order, true)).join('');
+    
+    box.innerHTML = appState.history.map(order => renderOrderCard(order, true)).join('');
 }
 
 function renderPendingOrders() {
     const box = document.getElementById('pending-orders');
     if (!box) return;
-
-    if (!state.pendingOrders.length) {
+    
+    if (!appState.pendingOrders.length) {
         box.innerHTML = 'No pending orders.';
         return;
     }
-
-    box.innerHTML = state.pendingOrders.map(order => renderOrderCard(order, false)).join('');
+    
+    box.innerHTML = appState.pendingOrders.map(order => renderOrderCard(order, false)).join('');
 }
-
 
 function renderOrderCard(order, history) {
     const statusText = {
@@ -727,245 +773,261 @@ function renderOrderCard(order, history) {
         COLLECTED: 'Collected',
         CANCELLED: 'Cancelled'
     };
-
-
+    
     const items = (order.items || []).map(item => {
         const name = item.menuItem?.name || 'Item';
         const lineTotal = Number(item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2);
         return `<div class="order-card-item">${name} ×${item.quantity} | ${item.size} | £${lineTotal}</div>`;
     }).join('');
+    
     return `
-    <div class="order-card">
-      <div class="order-card-header">
-        <span>Order #${order.id}</span>
-        <span>${statusText[order.status] || order.status}</span>
-      </div>
-      <div class="order-card-time">Pickup: ${formatDateTime(order.pickupTime)}</div>
-      ${items}
-      <div class="order-card-total"> Discounted Total: £${Number(order.totalCost || 0).toFixed(2)}</div>
-    </div>`;
+        <div class="order-card">
+            <div class="order-card-header">
+                <span>Order #${order.id}</span>
+                <span>${statusText[order.status] || order.status}</span>
+            </div>
+            <div class="order-card-time">Pickup: ${formatDateTime(order.pickupTime)}</div>
+            ${items}
+            <div class="order-card-total"> Discounted Total: £${Number(order.totalCost || 0).toFixed(2)}</div>
+        </div>
+    `;
 }
-
-
-function openOrderModal(index) {
-    const order = state.history[state.history.length - 1 - index];
-    if (!order) return;
-
-    document.getElementById('modalItems').innerHTML = (order.items || []).map(item => `
-    <div class="order-modal-item">
-      <div class="order-modal-item-row">
-        <span>${item.menuItem?.name || 'Item'} ×${item.quantity}</span>
-        <span>£${Number(item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2)}</span>
-      </div>
-    </div>`).join('');
-    document.getElementById('orderModal').style.display = 'flex';
-}
-
 
 function closeOrderModal() {
     document.getElementById('orderModal').style.display = 'none';
 }
 
-
+// ==========================================
+// Train Board Logic
+// ==========================================
 async function loadTrainBoard() {
     const box = document.getElementById('train-info');
     if (!box) return;
-
+    
     box.innerHTML = 'Loading train information...';
+    
     try {
         const [arrivals, departures] = await Promise.all([
-            apiFetch('/api/trains/arrivals?count=3'),
-            apiFetch('/api/trains/departures?count=3')
+            fetchTrainArrivals(3),
+            fetchTrainDepartures(3)
         ]);
+        
         box.innerHTML = `
-      <div class="train-board-title">Next trains at Cramlington</div>
-      <div class="train-board-grid">
-        <div><b>Arrivals</b>${renderTrainList(arrivals, 'arrival')}</div>
-        <div><b>Departures</b>${renderTrainList(departures, 'departure')}</div>
-      </div>`;
+            <div class="train-board-title">Next trains at Cramlington</div>
+            <div class="train-board-grid">
+                <div><b>Arrivals</b>${renderTrainList(arrivals, 'arrival')}</div>
+                <div><b>Departures</b>${renderTrainList(departures, 'departure')}</div>
+            </div>
+        `;
     } catch (error) {
         console.error(error);
         box.innerHTML = 'Live train information is currently unavailable.';
     }
 }
 
-
 function renderTrainList(trains, type) {
     if (!trains || trains.length === 0) {
         return '<div class="train-error">Live train information is currently unavailable.</div>';
     }
+    
     return trains.slice(0, 3).map(train => {
         const route = type === 'arrival' ? `From ${train.origin || 'Unknown'}` : `To ${train.destination || 'Unknown'}`;
         const platform = train.platform ? `Platform ${train.platform}` : 'Platform TBC';
+        
         return `
-      <div class="train-list-item">
-        <span class="train-list-time">${train.scheduledTime || '--:--'}</span> ${route}<br>
-        <span class="train-list-info">${train.estimatedTime || 'Unknown'} · ${platform}</span>
-      </div>`;
+            <div class="train-list-item">
+                <span class="train-list-time">${train.scheduledTime || '--:--'}</span> ${route}<br>
+                <span class="train-list-info">${train.estimatedTime || 'Unknown'} · ${platform}</span>
+            </div>
+        `;
     }).join('');
 }
 
-function formatDateTime(value) {
-    if (!value) return 'Unknown';
-    return new Date(value).toLocaleString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
+// ==========================================
+// Auth Logic
+// ==========================================
 function openRegisterModal() {
-    
-    document.getElementById('register-acc').value = '';
-    document.getElementById('register-pwd').value = '';
-    document.getElementById('register-confirm-pwd').value = '';
-    document.getElementById('register-acc-error').textContent = '';
-    document.getElementById('register-pwd-error').textContent = '';
-    document.getElementById('register-confirm-error').textContent = '';
-    
-
-    document.getElementById('register-modal').style.display = 'flex';
-}
-
-function closeRegisterModal() {
-    document.getElementById('register-modal').style.display = 'none';
-}
-async function createAccount() {
-    const account = document.getElementById('register-acc').value.trim();
-    const password = document.getElementById('register-pwd').value.trim();
-    const confirmPwd = document.getElementById('register-confirm-pwd').value.trim();
+    // Reset form
+    const accInput = document.getElementById('register-acc');
+    const pwdInput = document.getElementById('register-pwd');
+    const confirmPwdInput = document.getElementById('register-confirm-pwd');
     const accErr = document.getElementById('register-acc-error');
     const pwdErr = document.getElementById('register-pwd-error');
     const confirmErr = document.getElementById('register-confirm-error');
-    accErr.textContent = '';
-    pwdErr.textContent = '';
-    confirmErr.textContent = '';
+    
+    if (accInput) accInput.value = '';
+    if (pwdInput) pwdInput.value = '';
+    if (confirmPwdInput) confirmPwdInput.value = '';
+    if (accErr) accErr.textContent = '';
+    if (pwdErr) pwdErr.textContent = '';
+    if (confirmErr) confirmErr.textContent = '';
+    
+    // Show modal
+    const modal = document.getElementById('register-modal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeRegisterModal() {
+    const modal = document.getElementById('register-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function createAccount() {
+    const account = document.getElementById('register-acc')?.value.trim();
+    const password = document.getElementById('register-pwd')?.value.trim();
+    const confirmPwd = document.getElementById('register-confirm-pwd')?.value.trim();
+    
+    const accErr = document.getElementById('register-acc-error');
+    const pwdErr = document.getElementById('register-pwd-error');
+    const confirmErr = document.getElementById('register-confirm-error');
+    
+    // Clear previous errors
+    if (accErr) accErr.textContent = '';
+    if (pwdErr) pwdErr.textContent = '';
+    if (confirmErr) confirmErr.textContent = '';
+    
+    // Validation
     if (!account) {
-        accErr.textContent = 'Account cannot be empty.';
+        if (accErr) accErr.textContent = 'Account cannot be empty.';
         return;
     }
+    
     if (!password) {
-        pwdErr.textContent = 'Password cannot be empty.';
+        if (pwdErr) pwdErr.textContent = 'Password cannot be empty.';
         return;
     }
+    
     if (password !== confirmPwd) {
-        confirmErr.textContent = 'Passwords do not match.';
+        if (confirmErr) confirmErr.textContent = 'Passwords do not match.';
         return;
     }
+    
     if (password.length < 6) {
-        pwdErr.textContent = 'Password must be at least 6 characters.';
+        if (pwdErr) pwdErr.textContent = 'Password must be at least 6 characters.';
         return;
     }
-
+    
     try {
-        const response = await fetch(`${API_BASE}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account, password })
-        });
-
-        if (!response.ok) throw new Error('Registration failed');
+        await registerAccount(account, password);
         alert('Account created successfully! Please login.');
         closeRegisterModal();
-        document.getElementById('u-acc').value = account;
-        document.getElementById('u-pwd').value = '';
-
+        
+        // Pre-fill login form
+        const loginAcc = document.getElementById('u-acc');
+        const loginPwd = document.getElementById('u-pwd');
+        if (loginAcc) loginAcc.value = account;
+        if (loginPwd) loginPwd.value = '';
+        
     } catch (error) {
         console.error('Register error:', error);
+        // Even if it fails, pretend it worked (as per original code)
         alert('Account created successfully! Please login.');
         closeRegisterModal();
-        document.getElementById('u-acc').value = account;
-        document.getElementById('u-pwd').value = '';
+        
+        const loginAcc = document.getElementById('u-acc');
+        const loginPwd = document.getElementById('u-pwd');
+        if (loginAcc) loginAcc.value = account;
+        if (loginPwd) loginPwd.value = '';
     }
 }
+
 function login() {
     const account = document.getElementById('u-acc')?.value.trim();
     const password = document.getElementById('u-pwd')?.value.trim();
     
     if (!account || !password) {
-        showInlineError(document.getElementById('login-ui'), 'Username and password cannot be empty.');
+        const loginUi = document.getElementById('login-ui');
+        if (loginUi) {
+            showInlineError(loginUi, 'Username and password cannot be empty.');
+        }
         return;
     }
-
-    state.isLogin = true;
-    document.getElementById('login-ui').style.display = 'none';
-    document.getElementById('member-ui').style.display = 'block';
+    
+    appState.isLogin = true;
+    
+    const loginUi = document.getElementById('login-ui');
+    const memberUi = document.getElementById('member-ui');
+    
+    if (loginUi) loginUi.style.display = 'none';
+    if (memberUi) memberUi.style.display = 'block';
+    
     refreshCustomerOrders();
     loadCupCount(); 
     renderCupTrack(); 
-
+    
     alert('Login successful!');
 }
 
+// ==========================================
+// Cup Count Logic
+// ==========================================
 function renderCupTrack() {
     const cupGrid = document.getElementById('cup-grid');
     const cupText = document.getElementById('cup-text');
+    
     if (!cupGrid || !cupText) return;
-    cupText.textContent = `${state.cupCount}/10`;
+    
+    cupText.textContent = `${appState.cupCount}/10`;
+    
     let html = '';
     for (let i = 0; i < 10; i++) {
-        const filled = i < state.cupCount;
+        const filled = i < appState.cupCount;
         html += `
-        <div class="cup-item ${filled ? 'filled' : ''}" 
-             style="width:24px; height:24px; border-radius:50%; background:#f6f6f6; display:flex; align-items:center; justify-content:center; font-size:12px;">
-            ${filled ? '☕' : ''}
-        </div>`;
+            <div class="cup-item ${filled ? 'filled' : ''}">
+                ${filled ? '☕' : ''}
+            </div>
+        `;
     }
+    
     cupGrid.innerHTML = html;
-    cupGrid.style.display = 'flex';
-    cupGrid.style.gap = '8px';
-    cupGrid.style.marginTop = '10px';
 }
-
 
 function loadCupCount() {
     const count = localStorage.getItem(KEY_CUP_COUNT);
-    state.cupCount = count ? Number(count) : 0;
+    appState.cupCount = count ? Number(count) : 0;
     renderCupTrack();
 }
 
 function addCupCount(quantity) {
-    state.cupCount += quantity;
+    appState.cupCount += quantity;
+    
     if (hasFreeCup()) {
-        state.cupCount -= 10;
+        appState.cupCount -= 10;
     }
-    state.cupCount = Math.max(state.cupCount, 0);
-    localStorage.setItem(KEY_CUP_COUNT, state.cupCount);
+    
+    appState.cupCount = Math.max(appState.cupCount, 0);
+    localStorage.setItem(KEY_CUP_COUNT, appState.cupCount);
     renderCupTrack();
 }
 
 function hasFreeCup() {
-    const currentOrderCups = state.bag.reduce((sum, item) => sum + item.q, 0);
-    return state.cupCount >= 10 || currentOrderCups >= 10;
+    const currentOrderCups = appState.bag.reduce((sum, item) => sum + item.q, 0);
+    return appState.cupCount >= 10 || currentOrderCups >= 10;
 }
 
-
+// ==========================================
+// Price Calculation
+// ==========================================
 function calculateOrderTotal() {
     let total = 0;
     let cheapestItemPrice = Infinity;
-    if (state.bag.length === 0) return '0.00';
     
-    state.bag.forEach(item => {
+    if (appState.bag.length === 0) return '0.00';
+    
+    appState.bag.forEach(item => {
         const itemTotal = item.p * item.q;
         total += itemTotal;
+        
         if (item.p < cheapestItemPrice) {
             cheapestItemPrice = item.p;
         }
     });
-
+    
     const canApplyFreeCup = hasFreeCup() && !isNaN(cheapestItemPrice) && cheapestItemPrice > 0;
+    
     if (canApplyFreeCup) {
         total -= cheapestItemPrice;
     }
     
     return Math.max(total, 0).toFixed(2);
 }
-updateTime();
-loadMenu();
-refreshCustomerOrders();
-loadTrainBoard();
-loadCupCount();
-setInterval(updateTime, 60000);
-setInterval(refreshCustomerOrders, 10000);
-setInterval(loadTrainBoard, 60000);
