@@ -1,7 +1,4 @@
-/**
- * Application State Management
- * Keeping all state in one place for easier debugging
- */
+
 
 // Local Storage Keys
 const KEY_CUSTOMER_ORDERS = 'ws_customer_order_ids';

@@ -14,6 +14,7 @@
             <div class="nav-item active" onclick="nav('orders', this)"><i class="fa-solid fa-table-columns"></i> Workspace</div>
             <div class="nav-item" onclick="nav('products', this)"><i class="fa-solid fa-list"></i> Menu Manager</div>
             <div class="nav-item" onclick="nav('archive', this)"><i class="fa-solid fa-clock-rotate-left"></i> History</div>
+            <div class="nav-item" onclick="nav('hours', this)"><i class="fa-solid fa-clock"></i> Opening Hours</div>
         </div>
 
         <div class="main-wrapper">
@@ -21,11 +22,13 @@
                 <div>
                     <span style="color: #999; margin-right: 10px;">Station:</span>
                     <select class="station-pick" id="stationFilter" onchange="renderAll()">
+                        
                         <option>Cramlington Station</option>
                         <option>Newcastle Station</option>
                         <option>Morpeth Station</option>
                     </select>
                 </div>
+                <div id="today-hours" style="font-weight: 600; color: #555; margin-right: 20px;"></div>
                 <div id="clock" style="font-weight: 700;">00:00:00</div>
             </header>
 
@@ -41,6 +44,7 @@
                             <div class="stat-val" id="count-prep" style="color: var(--accent-blue);">0</div>
                         </div>
                         <div class="stat-card">
+                            
                             <div style="font-size: 12px; color: #888;">Completed Today</div>
                             <div class="stat-val" id="count-done" style="color: #34c759;">0</div>
                         </div>
@@ -104,6 +108,13 @@
                         <tbody id="archive-body"></tbody>
                     </table>
                 </div>
+                <div id="view-hours" style="display:none; padding: 20px;">
+                  <h2>Opening Hours Settings</h2>
+                   <div style="margin-top: 20px; display: grid; gap: 15px; max-width: 500px;">
+                        <div id="hours-list"></div>
+                     </div>
+                 <div id="hours-msg" style="margin-top: 20px; color: #34c759; font-weight: 700;"></div>
+</div>
             </main>
         </div>
     </div>
@@ -115,9 +126,10 @@
             <input type="number" id="p-p1" placeholder="Regular Price (£)">
             <input type="number" id="p-p2" placeholder="Large Price (£) - Optional">
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button onclick="closePModal()" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ddd; cursor:pointer;">Cancel</button>
-                <button onclick="saveP()" style="flex:1; padding:10px; border-radius:8px; background:#000; color:#fff; border:none; cursor:pointer;">Save Product</button>
-            </div>
+               <div class="modal-buttons-row">
+    <button onclick="closePModal()" class="btn-cancel">Cancel</button>
+    <button onclick="saveP()" class="btn-save">Save Product</button>
+</div>
         </div>
     </div>
     <script src="JS/admin.js"></script>

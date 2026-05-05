@@ -1,7 +1,3 @@
-/**
- * API Layer - All backend calls go here
- * No changes to API endpoints or payloads
- */
 
 const API_BASE = 'http://localhost:8080';
 

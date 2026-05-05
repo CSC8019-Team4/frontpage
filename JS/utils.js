@@ -1,7 +1,3 @@
-/**
- * Utility Functions
- * Helper functions used across the app
- */
 
 /**
  * Show a temporary inline error message

@@ -1,11 +1,6 @@
-/**
- * Main Application Logic
- * Initializes the app and wires up all event listeners
- */
 
-// ==========================================
+// *****************************************//
 // Initialization - Runs when DOM is ready
-// ==========================================
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
 });
@@ -36,25 +31,19 @@ function setupEventListeners() {
         });
     });
     
-    // Mask click to close drawer
+
     const mask = document.getElementById('mask');
     if (mask) {
         mask.addEventListener('click', closeDrawer);
     }
-    
-    // Login button
     const loginBtn = document.getElementById('login-btn');
     if (loginBtn) {
         loginBtn.addEventListener('click', login);
     }
-    
-    // Register trigger
     const registerTriggerBtn = document.getElementById('register-trigger-btn');
     if (registerTriggerBtn) {
         registerTriggerBtn.addEventListener('click', openRegisterModal);
     }
-    
-    // Register modal close
     const registerClose = document.querySelector('.register-close');
     if (registerClose) {
         registerClose.addEventListener('click', closeRegisterModal);
@@ -64,26 +53,18 @@ function setupEventListeners() {
     if (registerCancelBtn) {
         registerCancelBtn.addEventListener('click', closeRegisterModal);
     }
-    
-    // Register submit
     const registerSubmitBtn = document.getElementById('register-submit-btn');
     if (registerSubmitBtn) {
         registerSubmitBtn.addEventListener('click', createAccount);
     }
-    
-    // Order modal close
     const orderModalClose = document.querySelector('.order-modal-close');
     if (orderModalClose) {
         orderModalClose.addEventListener('click', closeOrderModal);
     }
-    
-    // View cart button
     const viewCartBtn = document.getElementById('view-cart-btn');
     if (viewCartBtn) {
         viewCartBtn.addEventListener('click', openCart);
     }
-    
-    // Checkout button (floating bar)
     const checkoutBtn = document.getElementById('checkout-btn');
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', function() {
@@ -96,10 +77,58 @@ function setupEventListeners() {
     }
 }
 
-// ==========================================
+// *****************************************//
 // Time & Opening Hours Logic
-// ==========================================
-function updateTime() {
+// *****************************************//
+async function updateTime() {
+    const box = document.getElementById('timeBox');
+    if (!box) return;
+
+    try {
+  
+        const res = await fetch(`${API_BASE}/api/opening-hours`);
+        const allHours = await res.json();
+
+
+        const today = new Date();
+        let jsDay = today.getDay(); // JS: 0=Sun, 1=Mon, ..., 6=Sat
+        let javaDay = (jsDay === 0) ? 7 : jsDay; 
+
+
+        const todayHours = allHours.find(h => h.dayOfWeek === javaDay);
+        
+        if (!todayHours) {
+            box.innerHTML = '<span class="status-dot dot-close"></span>Closed<br>Not available';
+            return;
+        }
+
+    
+        const now = new Date();
+        const currentHour = now.getHours() + now.getMinutes() / 60;
+        
+    
+        const [openH, openM] = todayHours.openTime.split(':').map(Number);
+        const [closeH, closeM] = todayHours.closeTime.split(':').map(Number);
+        const openTimeNum = openH + openM / 60;
+        const closeTimeNum = closeH + closeM / 60;
+
+        const isOpen = currentHour >= openTimeNum && currentHour < closeTimeNum;
+        const range = `${todayHours.openTime}-${todayHours.closeTime}`;
+
+    
+        box.innerHTML = `
+            <span class="status-dot ${isOpen ? 'dot-open' : 'dot-close'}"></span>
+            ${isOpen ? 'Open' : 'Closed'}<br>
+            ${range}
+        `;
+    } catch (error) {
+        console.warn('获取营业时间失败，使用默认值:', error);
+    
+        fallbackUpdateTime();
+    }
+}
+
+function fallbackUpdateTime() {
     const n = new Date();
     const d = n.getDay();
     const h = n.getHours() + n.getMinutes() / 60;
@@ -244,7 +273,7 @@ function openDrawer(menuItemId) {
                     <span class="drawer-label">Pickup Station</span>
                     <select id="pickup-station" class="drawer-input">
                         <option value="Cramlington Station">Cramlington Station</option>
-                        <option value="Newcastle Station">Newcastle Station</option>
+                     <option value="Newcastle Station">Newcastle Station</option>
                         <option value="Morpeth Station">Morpeth Station</option>
                     </select>
                 </div>
@@ -274,7 +303,7 @@ function openDrawer(menuItemId) {
 function setupDrawerListeners() {
     // Option buttons (milk, sugar)
     document.querySelectorAll('#drawer .opt-btn[data-type]').forEach(btn => {
-        btn.addEventListener('click', function() {
+         btn.addEventListener('click', function() {
             const type = this.getAttribute('data-type');
             setOpt(this, type);
         });
@@ -299,7 +328,7 @@ function setupDrawerListeners() {
     
     // Add to bag button
     const addToBagBtn = document.getElementById('add-to-bag-btn');
-    if (addToBagBtn) {
+     if (addToBagBtn) {
         addToBagBtn.addEventListener('click', addBag);
     }
 }
@@ -319,7 +348,7 @@ function selSize(el, price, size) {
 }
 
 function setOpt(el, type) {
-    const group = el.parentElement;
+     const group = el.parentElement;
     group.querySelectorAll('.opt-btn').forEach(btn => btn.classList.remove('active'));
     el.classList.add('active');
 }
@@ -331,7 +360,7 @@ function qty(v) {
 
 function updatePrice() {
     const qVal = document.getElementById('q-val');
-    const dPrice = document.getElementById('d-price');
+     const dPrice = document.getElementById('d-price');
     
     if (qVal) qVal.innerText = appState.q;
     if (dPrice) dPrice.innerText = `£${(appState.bp * appState.q).toFixed(2)}`;

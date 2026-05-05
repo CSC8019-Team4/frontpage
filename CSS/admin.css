@@ -173,3 +173,26 @@ html, body {
     .sidebar { display: none; }
     .kanban-container { flex-direction: column; height: auto; overflow-y: visible; }
 }
+.modal-buttons-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-cancel {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.btn-save {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    background: #000;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
