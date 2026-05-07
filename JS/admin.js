@@ -2,7 +2,7 @@ const KEY_MENU = 'ws_menu_data';
 const KEY_ORDERS = 'pendingOrders';
 const KEY_HISTORY = 'ws_order_history';
 const KEY_SHOP_STATS = 'ws_shop_stats';
-const API_BASE = 'https://1-production-e223.up.railway.app';
+const API_BASE = "https://1-production-e223.up.railway.app";
 const STAFF_TOKEN = "whistlestop-staff-2025";
 const DAY_NAMES = {
     1: 'Monday',
@@ -116,10 +116,6 @@ function renderAll() {
             } else if (ord.displayStatus === 'READY') {
                 document.getElementById('list-ready').innerHTML += card;
                 counts.c3++;
-            }
-            else if(ord.status === 'COLLECTED' && isToday(ord.updatedAt || ord.pickupTime)) {
-                counts.done++;
-                counts.rev += calculateOrderTotal(ord);
             }
         });
 
@@ -239,21 +235,20 @@ function renderShopStats() {
         ).length;
         const readyCount = filteredActive.filter(o => o.status === "READY").length;
 
-        const todayCompletedOrders = filteredHistory.filter(o => 
-            o.status === "COLLECTED" && isToday(o.updatedAt || o.pickupTime || o.createdAt)
-        );
-        const completedTodayCount = todayCompletedOrders.length;
-        const todayRevenue = todayCompletedOrders.reduce((sum, ord) => {
-            return sum + calculateOrderTotal(ord);
-        }, 0);
+
+       const allCompletedOrders = filteredHistory.filter(o => o.status === "COLLECTED");
+       const completedCount = allCompletedOrders.length;
+       const totalRevenue = allCompletedOrders.reduce((sum, ord) => {
+                return sum + calculateOrderTotal(ord);}, 0);
+
 
         document.getElementById('count-new').innerText = pendingCount;
         document.getElementById('count-prep').innerText = inProgressCount;
         document.getElementById('num1').innerText = pendingCount;
         document.getElementById('num2').innerText = inProgressCount;
         document.getElementById('num3').innerText = readyCount;
-        document.getElementById('count-done').innerText = completedTodayCount;
-        document.getElementById('total-rev').innerText = todayRevenue.toFixed(2);
+        document.getElementById('count-done').innerText = completedCount;
+        document.getElementById('total-rev').innerText = totalRevenue.toFixed(2);
     })
     .catch(error => {
         console.error("Could not load shop stats:", error);
@@ -350,6 +345,7 @@ function renderArchive() {
             const filteredHistory = history.filter(ord => {
                 return !ord.station || ord.station === currentStation;
             });
+            filteredHistory.sort((a,b) => b.id - a.id);
 
             if (filteredHistory.length === 0) {
                 archiveBody.innerHTML = `
@@ -364,22 +360,23 @@ function renderArchive() {
                 return;
             }
 
-            filteredHistory.forEach(ord => {
-                const productNames = (ord.items || []).map(item => {
-                    const name = item.menuItem?.name || item.name || 'Coffee';
-                    const customisation = item.customisationNote ? ` (${item.customisationNote})` : '';
-                    return `${name}${customisation}`;
-                }).join(', ');
+           filteredHistory.forEach(ord => {
+    if (ord.status !== 'COLLECTED') return; 
 
-                const quantity = (ord.items || []).reduce((sum, item) => {
-                    return sum + Number(item.quantity || item.q || 0);
-                }, 0);
+    const productNames = (ord.items || []).map(item => {
+        const name = item.menuItem?.name || item.name || 'Coffee';
+        const customisation = item.customisationNote ? ` (${item.customisationNote})` : '';
+        return `${name}${customisation}`;
+    }).join(', ');
 
-                const totalPrice = calculateOrderTotal(ord);
+    const quantity = (ord.items || []).reduce((sum, item) => {
+        return sum + Number(item.quantity || item.q || 0);
+    }, 0);
 
-    
-                totalOrders++;
-                totalRevenue += totalPrice;
+    const totalPrice = calculateOrderTotal(ord);
+
+    totalOrders++;
+    totalRevenue += totalPrice;
 
                 const time = ord.pickupTime
                     ? new Date(ord.pickupTime).toLocaleString('en-GB')

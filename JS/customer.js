@@ -1021,7 +1021,7 @@ function addCupCount(quantity) {
     appState.cupCount += quantity;
     
     if (hasFreeCup()) {
-        appState.cupCount -= 10;
+         appState.cupCount = 0;;
     }
     
     appState.cupCount = Math.max(appState.cupCount, 0);
