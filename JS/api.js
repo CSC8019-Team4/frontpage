@@ -1,5 +1,5 @@
 
-const API_BASE = 'https://1-production-e223.up.railway.app';
+const API_BASE = 'https://corsproxy.io/?https://1-production-e223.up.railway.app';
 
 /**
  * Generic fetch wrapper for API calls
