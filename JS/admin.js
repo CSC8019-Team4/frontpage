@@ -2,7 +2,7 @@ const KEY_MENU = 'ws_menu_data';
 const KEY_ORDERS = 'pendingOrders';
 const KEY_HISTORY = 'ws_order_history';
 const KEY_SHOP_STATS = 'ws_shop_stats';
-const API_BASE = "http://localhost:8080";
+const API_BASE = "https://1-production-e223.up.railway.app";
 const STAFF_TOKEN = "whistlestop-staff-2025";
 const DAY_NAMES = {
     1: 'Monday',
